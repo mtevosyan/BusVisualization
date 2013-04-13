@@ -1,12 +1,12 @@
-var BusStopManager = (function() {
-
+BusStopManager = (function() {
+try{
     var BUFFER_SIZE = 100;
     var MIN_STOP_TIME_DIFF = 25;
 
     var buffer = {};
 
     var currentTimeRequest = 0;
-    var lastStopTime = INITIAL_STOP_TIME;
+    var lastStopTime = BUFFER_SIZE;
     var busNumbers = {};
     var busNumberEnabled = {};
     var socket;
@@ -15,6 +15,7 @@ var BusStopManager = (function() {
         socket = io.connect('http://localhost:3000');
         socket.on('onBusNumbersReceived', self.onBusNumbersRecieved());
         socket.on('onBusStopsReceived', self.onBusStopsReceived());
+        socket.emit('getBusNumbers');
     };
 
     // --- Interface ---
@@ -43,8 +44,9 @@ var BusStopManager = (function() {
     // --- Server callbacks ---
 
     self.onBusNumbersReceived = function(aBusNumbers) {
-        busNumbers = aBusNumbers;
-        socket.emit('getBusStops', { start: 0, end: BUFFER_SIZE});
+        console.log(aBusNumbers);
+        // busNumbers = aBusNumbers;
+        // socket.emit('getBusStops', { start: 0, end: BUFFER_SIZE});
     };
 
     self.onBusStopsReceived = function(data) {
@@ -58,5 +60,9 @@ var BusStopManager = (function() {
             };
         }
     };
-
+    return self;
+}catch(err)
+{
+    console.log(err);
+}
 })();
