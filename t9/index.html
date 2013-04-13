@@ -5,13 +5,13 @@
 		<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		
-		<link href="/assets/css/default.css" rel="stylesheet" type="text/css" />
-		<link href="/favicon.ico" rel="shortcut icon" type="image/ico" />
+		<link href="./assets/css/default.css" rel="stylesheet" type="text/css" />
+		<link href="./favicon.ico" rel="shortcut icon" type="image/ico" />
 
-		<script type="text/javascript" src="/assets/js/jquery-1.9.1.min.js"></script>
-		<script type="text/javascript" src="/assets/js/default.js"></script>
+		<script type="text/javascript" src="./assets/js/jquery-1.9.1.min.js"></script>
+		<script type="text/javascript" src="./assets/js/default.js"></script>
 		
-		<script type="text/javascript" src="/assets/js/three.min.js"></script>
+		<script type="text/javascript" src="./assets/js/three.min.js"></script>
 		
 		<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?sensor=false"></script>
                 
@@ -28,10 +28,14 @@
                 <button type = "button" onclick="toolbarB3Clicked()">
                     B3
                 </button>
+				Zoom <input id="slider_zoom" type="range" min="0" max="100" step="1" value="50" />
+				
+				<img src="./assets/img/settings.png" id="options_gear">
             </div>
 
             <div id="optionsbar">
-                <b>Options</b><br>
+				<div id="options_container">
+					<b>Options</b><br>
                     <p>
                     <label>Schedule</label>            
                     <input type = "radio"
@@ -63,7 +67,8 @@
                            id = "othercity"
                            value = "Other City"/>
                     <label for = "cityRadioButton">Other City</label>
-                    </p>       
+                    </p>
+				</div>
             </div>
                     
             <div id="content">
