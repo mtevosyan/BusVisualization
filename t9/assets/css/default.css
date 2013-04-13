@@ -18,3 +18,40 @@ body { height: 100%; margin: 0px; padding: 0px }
 	width: 100%;
 	height: 100%;
 }
+
+#content {
+	height: 100%;
+}
+
+#optionsbar {
+	background-color: #FFD700;
+	height: 100%;
+	width: 300px;
+	position: absolute;
+	z-index: 9999;
+	right: -1px;
+	padding: 6px;
+	border-left: 2px solid #ffa500;
+}
+
+#toolbar {
+	background-color: #FFA500;
+	position: absolute;
+	top: 0;
+	height: 40px;
+	width: 100%;
+	z-index: 9999;
+	padding: 10px;
+}
+
+#sliderbar {
+	background-color: #FFA500;
+	height: 40px;
+	width: 100%;
+	clear: both;
+	text-align: center;
+	position: absolute;
+	bottom: 2px;
+	margin: 0 0 -2px;
+	padding: 10px;
+}

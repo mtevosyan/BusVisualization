@@ -41,17 +41,15 @@ $(document).ready(function() {
 		materialArray.push(new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( '/assets/img/1.png' ) }));//color: 0x0e143e
 		var material = new THREE.MeshFaceMaterial(materialArray);
 		
-
-var cubeGeo = new THREE.CubeGeometry(100,40,40, 3, 3, 3);
-mesh = new THREE.Mesh(cubeGeo, material);
-				
+		var cubeGeo = new THREE.CubeGeometry(100,40,40, 3, 3, 3);
+		mesh = new THREE.Mesh(cubeGeo, material);
 
 		mesh.position.set(30, 30, 0 );
         scene.add( mesh );
 		
         mesh.rotation.x -= 19;
 		mesh.rotation.y = -7;
-
+		
         obj.appendChild( renderer.domElement );
     }
 
@@ -65,5 +63,8 @@ mesh = new THREE.Mesh(cubeGeo, material);
     }
 	
 	
+	$("#slide").bind('change', function() {
+		console.log($(this).val());
+	});
 	
 });
