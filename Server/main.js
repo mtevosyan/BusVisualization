@@ -23,11 +23,32 @@ function handler (req, res) {
   });
 }
 
+var enabledBusRoutes = [];
+
+function generateBusData(routeNbr, busNbr, t, nT, X, Y)
+{
+    var retVal = {routeNumber: routeNbr,
+                  busNumber: busNbr,
+                  time: t,
+                  nextTime: nT,
+                  x: X,
+                  y: Y};
+
+    return retVal;
+}
+
+
 function returnOnBusStopsReceived(s, data) {
-    var data1 = [{hello: "World"},
-                {hello: "World"}];
-    
-    s.emit('onBusStopsReceived', data1);
+    var retVal = [];
+
+    for(time = data.start; time < data.end; ++time) {
+        for(index = 0; index < enabledBusRoutes.length; ++index) {
+            var route = enabledBusRoutes[index];
+            retVal.push(generateBusData(route, route, time, time+1, 12, 24));
+        }
+    }
+
+    s.emit('onBusStopsReceived', retVal);
 }
 
 function returnOnGetBusNubers(s, data) {
@@ -36,8 +57,8 @@ function returnOnGetBusNubers(s, data) {
 }
 
 function setActiveBusses(s, data) {
-    console.log('Set Active Bus');
-    console.log(data);
+    enabledBusRoutes = data;
+    console.log(enabledBusRoutes);
 }
 
 io.sockets.on('connection', function(socket) {
