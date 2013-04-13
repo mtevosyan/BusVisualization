@@ -18,7 +18,7 @@
     </head>
     <body>
         <div class="row-fluid">
-            <div id="toolbar" style="background-color:#FFA500;height:30px;float:top;">
+            <div id="toolbar">
                 <button type = "button" onclick="toolbarB1Clicked()">
                     B1
                 </button>
@@ -30,7 +30,7 @@
                 </button>
             </div>
 
-            <div id="optionsbar" style="background-color:#FFD700;height:480px;width:200px;float:right;">
+            <div id="optionsbar">
                 <b>Options</b><br>
                     <p>
                     <label>Schedule</label>            
@@ -66,18 +66,16 @@
                     </p>       
             </div>
                     
-            <div id="content" style="background-color:#EEEEEE;height:480px;width:640px;float:left;">
+            <div id="content">
                 <div class="span12">
                     <div id="map_canvas"></div>
                     <div id="glcanvas"></div>
                 </div>
             </div>
             
-            <div id="sliderbarbar" style="background-color:#FFA500;height:30px;float:top;clear:both;text-align:center;">
+            <div id="sliderbar">
                 <div id="slider">
-                    Stop Movement <input id="slide" type="range"
-                    min="0" max="100" step="1" value="50"
-                    onchange="updateSlider(this.value)" />
+                    Stop Movement <input id="slide" type="range" min="0" max="100" step="1" value="50" />
                     High Speed
                 </div>
             </div>
