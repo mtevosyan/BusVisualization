@@ -70,12 +70,24 @@ namespace DataTransform
                 {
                     await sw.WriteAsync(sched_delim);
                     sched_delim = ",";
-                    await sw.WriteAsync("{name:'" + info.name + "', index:'" + info.indexfile.Name + "', data:'" + info.datafile.Name + "'}");
+                    await sw.WriteAsync("{name:'" + info.name + "', index:'" + info.indexfile.Name + "', data:'" + info.datafile.Name + "',gps_lat:" + info.gpsLat + ",gps_long:" + info.gpsLong + "}");
                 }
                 await sw.WriteAsync("]");
             }
             try { richTextBox_Output.Text = "Done"; }
             catch { }
+        }
+
+        public async Task<Dictionary<String, BusStop>> ParseStops(DirectoryInfo input)
+        {
+            await Task.Yield();
+            return null;
+        }
+
+        public class BusStop
+        {
+            public int x;
+            public int y;
         }
 
         private async Task< ScheduleInfo> process_schedule(DirectoryInfo input, DirectoryInfo output, String scheduleId)
@@ -85,7 +97,10 @@ namespace DataTransform
             {
                 name = scheduleId,
                 datafile = makeFile(output, scheduleId+"-schedule.json"),
-                indexfile = makeFile(output, scheduleId+"-index.json")
+                indexfile = makeFile(output, scheduleId+"-index.json"),
+                gpsLat = 45.439869,
+                gpsLong = -75.695839
+
             };
             using (StreamWriter sw_index = new StreamWriter(temp.indexfile.FullName))
             using (StreamWriter sw_data = new StreamWriter(temp.datafile.FullName))
@@ -110,7 +125,7 @@ namespace DataTransform
                         {
                             await sw_data.WriteAsync(bus_delim);
                             bus_delim = ",";
-                            await sw_data.WriteAsync("{x:" + (int)(rnd.Next(-5000, 5000)) + ",y:" + (int)(rnd.Next(-5000, 5000)) + "r:" + r + ",b:" + b + "}");
+                            await sw_data.WriteAsync("{x:" + (int)(rnd.Next(-5000, 5000)) + ",y:" + (int)(rnd.Next(-5000, 5000)) + ",r:" + r + ",b:" + b + "}");
                         }
                     }
                     await sw_data.WriteAsync("]");
@@ -128,6 +143,8 @@ namespace DataTransform
             public String name;
             public FileInfo datafile;
             public FileInfo indexfile;
+            public double gpsLat;
+            public double gpsLong;
         }
 
         private FileInfo makeFile(DirectoryInfo folder, String name)
