@@ -1,5 +1,6 @@
 var x = 20;
 var y = 20;
+var map;
 	
 $(document).ready(function() {
 	google.maps.event.addDomListener(window, 'load', initialize);
@@ -12,7 +13,7 @@ $(document).ready(function() {
 			disableDefaultUI: true,
 			mapTypeId: google.maps.MapTypeId.ROADMAP
 		};
-		var map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
+		map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
 	}
 	
 	var camera, scene, renderer;
@@ -64,7 +65,37 @@ $(document).ready(function() {
 	
 	
 	$("#slide").bind('change', function() {
+		//console.log($(this).val());
+	});
+	
+	$("#slider_zoom").bind('change', function() {
 		console.log($(this).val());
 	});
 	
+	$("#options_gear").bind('click', function() {
+		console.log($("#optionsbar").css('margin-right'));
+		if ($("#optionsbar").css('right') == '-300px') {
+			
+			$("#options_gear").animate({
+				'margin-right': '324'
+			}, 1000);
+			
+			$('#optionsbar').css('display', 'block');
+			$('#optionsbar').animate({
+				'right': '-1'
+			}, 1000, function() {
+			});
+			
+		} else {
+			$("#options_gear").animate({
+				'margin-right': '24'
+			}, 1000);
+			
+			$('#optionsbar').animate({
+				'right': '-300'
+			}, 1000, function() {
+				$('#optionsbar').css('display', 'none');
+			});
+		}
+	});
 });
