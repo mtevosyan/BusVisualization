@@ -34,12 +34,12 @@ $(document).ready(function() {
         scene = new THREE.Scene();
 		
 		var materialArray = [];
-		materialArray.push(new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( '/assets/img/0.png' ) }));
-		materialArray.push(new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( '/assets/img/2.png' ) }));
+		materialArray.push(new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( './assets/img/0.png' ) }));
+		materialArray.push(new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( './assets/img/2.png' ) }));
 		materialArray.push(new THREE.MeshBasicMaterial( { color: 0x0e143e }));
 		materialArray.push(new THREE.MeshBasicMaterial( { transparent: true, opacity: 0.3 }));
-		materialArray.push(new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( '/assets/img/3.png' ) }));
-		materialArray.push(new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( '/assets/img/1.png' ) }));//color: 0x0e143e
+		materialArray.push(new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( './assets/img/3.png' ) }));
+		materialArray.push(new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( './assets/img/1.png' ) }));//color: 0x0e143e
 		var material = new THREE.MeshFaceMaterial(materialArray);
 		
 		var cubeGeo = new THREE.CubeGeometry(100,40,40, 3, 3, 3);
