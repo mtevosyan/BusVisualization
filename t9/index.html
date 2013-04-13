@@ -4,20 +4,20 @@
 		<title>T9 - Bus</title>
 		<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<link href="/assets/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
-		<link href="/assets/css/bootstrap-responsive.min.css" rel="stylesheet" type="text/css" />
-		<link href="/assets/css/default.css" rel="stylesheet" type="text/css" />
+		<link href="/t9/assets/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+		<link href="/t9/assets/css/bootstrap-responsive.min.css" rel="stylesheet" type="text/css" />
+		<link href="/t9/assets/css/default.css" rel="stylesheet" type="text/css" />
 		<link href="/favicon.ico" rel="shortcut icon" type="image/ico" />
 		<!--[if lt IE 7]>
 		<link rel="stylesheet" href="http://blueimp.github.com/cdn/css/bootstrap-ie6.min.css">
 		<![endif]-->
-		<script type="text/javascript" src="/assets/js/jquery-1.9.1.min.js"></script>
-		<script type="text/javascript" src="/assets/js/bootstrap.min.js"></script>
-		<script type="text/javascript" src="/assets/js/default.js"></script>
+		<script type="text/javascript" src="/t9/assets/js/jquery-1.9.1.min.js"></script>
+		<script type="text/javascript" src="/t9/assets/js/bootstrap.min.js"></script>
+		<script type="text/javascript" src="/t9/assets/js/default.js"></script>
 		
-		<script type="text/javascript" src="/assets/js/webgl-utils.js"></script>
-		<script type="text/javascript" src="/assets/js/util.js"></script>
-		<script type="text/javascript" src="/assets/js/t9.js"></script>
+		<script type="text/javascript" src="/t9/assets/js/webgl-utils.js"></script>
+		<script type="text/javascript" src="/t9/assets/js/util.js"></script>
+		<script type="text/javascript" src="/t9/assets/js/t9.js"></script>
 		
 		<script id="shader-fs" type="x-shader/x-fragment">
 			precision mediump float;
@@ -45,15 +45,77 @@
 		</script>
 		
 		<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?sensor=false"></script>
+                
     </head>
     <body>
-		<div class="row-fluid">
-			<div class="span12">
-				<div id="map_canvas"></div>
-				<canvas id="glcanvas" width="640" height="480">
-					Your browser doesn't appear to support the HTML5 <code>&lt;canvas&gt;</code> element.
-				</canvas>
-			</div>
-		</div>
-	</body>
+        <div class="row-fluid">
+            <div id="toolbar" style="background-color:#FFA500;height:30px;float:top;">
+                <button type = "button" onclick="toolbarB1Clicked()">
+                    B1
+                </button>
+                <button type = "button" onclick="toolbarB2Clicked()">
+                    B2
+                </button>
+                <button type = "button" onclick="toolbarB3Clicked()">
+                    B3
+                </button>
+            </div>
+
+            <div id="optionsbar" style="background-color:#FFD700;height:480px;width:200px;float:right;">
+                style="background-color:float:right;"
+                <b>Options</b><br>
+                    <p>
+                    <label>Schedule</label>            
+                    <input type = "radio"
+                           name = "scheduleRadioButton"
+                           id = "weekDay"
+                           value = "Week Day"
+                           checked = "checked" />
+                    <label for = "scheduleRadioButton">Week Day</label>
+
+                    <input type = "radio"
+                           name = "scheduleRadioButton"
+                           id = "holiday"
+                           value = "Holiday"/>
+                    <label for = "scheduleRadioButton">Holiday</label>
+                    </p>
+                    <br>
+                    <br>
+                    <p>
+                    <label>City</label>            
+                    <input type = "radio"
+                           name = "cityRadioButton"
+                           id = "ottawa"
+                           value = "Ottawa"
+                           checked = "checked" />
+                    <label for = "cityRadioButton">Ottawa</label>
+
+                    <input type = "radio"
+                           name = "cityRadioButton"
+                           id = "othercity"
+                           value = "Other City"/>
+                    <label for = "cityRadioButton">Other City</label>
+                    </p>       
+            </div>
+                    
+            <div id="content" style="background-color:#EEEEEE;height:480px;width:640px;float:left;">
+                <div class="span12">
+                    <div id="map_canvas"></div>
+                    <canvas id="glcanvas" width="640" height="480">
+                       Your browser doesn't appear to support the HTML5 <code>&lt;canvas&gt;</code> element.
+                    </canvas>
+                </div>
+            </div>
+            
+            <div id="sliderbarbar" style="background-color:#FFA500;height:30px;float:top;clear:both;text-align:center;">
+                <div id="slider">
+                    Stop Movement <input id="slide" type="range"
+                    min="0" max="100" step="1" value="50"
+                    onchange="updateSlider(this.value)" />
+                    High Speed
+                </div>
+            </div>
+
+        </div>
+    </body>
 </html>
