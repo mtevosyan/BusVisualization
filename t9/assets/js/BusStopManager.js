@@ -1,19 +1,18 @@
 var BusStopManager = (function() {
 
-    var BUFFER_SIZE = 10;
-    var INITIAL_STOP_TIME = 100;
+    var BUFFER_SIZE = 100;
+    var MIN_STOP_TIME_DIFF = 25;
 
     var buffer = {};
 
-    var currentStart = 0;
-    var currentStop = INITIAL_STOP_TIME;
+    var currentTimeRequest = 0;
+    var lastStopTime = INITIAL_STOP_TIME;
     var busNumbers = {};
     var busNumberEnabled = {};
-    var busStops = {};
     var socket;
 
     var self = function() {
-        socket = io.connect('http://localhost');
+        socket = io.connect('http://localhost:3000');
         socket.on('onBusNumbersReceived', self.onBusNumbersRecieved());
         socket.on('onBusStopsReceived', self.onBusStopsReceived());
     };
@@ -33,16 +32,19 @@ var BusStopManager = (function() {
     };
 
     self.getBusStops = function(time) {
-        if (bustStops[busNumber]) {
-            return busStops[busNumber].dequeue();
+        currentTimeRequest = time;
+        if (lastStopTime - time < MIN_STOP_TIME_DIFF) {
+            socket.emit('getBusStops', { start: lastStopTime, end: lastStopTime + BUFFER_SIZE});
+            lastStopTime = lastStopTime + BUFFER_SIZE;
         }
+        return buffer[time];
     };
 
     // --- Server callbacks ---
 
     self.onBusNumbersReceived = function(aBusNumbers) {
         busNumbers = aBusNumbers;
-        socket.emit('getBusStops', { start: currentStart, end: currentStop });
+        socket.emit('getBusStops', { start: 0, end: BUFFER_SIZE});
     };
 
     self.onBusStopsReceived = function(data) {
