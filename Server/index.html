@@ -1,0 +1,18 @@
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  var socket = io.connect('http://127.0.0.1:3000');
+
+  socket.on('onBusStopsReceived', function(data) {
+      console.log(data);
+  });
+
+  socket.on('onBusNumbersReceived', function(data) {
+      console.log(data);
+  });
+
+  socket.emit('getBusNumbers', {});
+  socket.emit('setActiveBusses', [1, 2, 3,4]);
+
+  socket.emit('getBusStops', {start: 10, end: 25});
+
+</script>
