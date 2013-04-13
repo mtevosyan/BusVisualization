@@ -29,9 +29,13 @@ body { height: 100%; margin: 0px; padding: 0px }
 	width: 300px;
 	position: absolute;
 	z-index: 9999;
-	right: -1px;
-	padding: 6px;
+	right: -300px;
 	border-left: 2px solid #ffa500;
+	display: none;
+}
+
+#options_container {
+	padding: 10px;
 }
 
 #toolbar {
@@ -54,4 +58,12 @@ body { height: 100%; margin: 0px; padding: 0px }
 	bottom: 2px;
 	margin: 0 0 -2px;
 	padding: 10px;
+}
+
+#options_gear {
+	width: 32px;
+	height: 32px;
+	cursor: pointer;
+	float: right;
+	margin-right: 24px;
 }
