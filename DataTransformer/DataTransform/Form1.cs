@@ -74,7 +74,7 @@ namespace DataTransform
                 foreach (ScheduleInfo info in schedule_results)
                 {
                     await sw.WriteAsync(sched_delim);
-                    sched_delim = ",";
+                    sched_delim = ",\r\n";
                     await sw.WriteAsync("{\"name\":\"" + info.Name + "\", \"index\":\"" + info.indexfile.Name + "\", \"data\":\"" + info.datafile.Name + "\",\"gps_lat\":" + average_location.gps_lat + ",\"gps_long\":" + average_location.gps_lon + "}");
                 }
                 await sw.WriteAsync("]");
@@ -302,9 +302,8 @@ namespace DataTransform
             Random rnd = new Random();
             theSchedule.datafile = makeFile(output, theSchedule.Name + "-schedule.json");
             theSchedule.indexfile = makeFile(output, theSchedule.Name + "-index.json");
-
             Dictionary<int, List<TripDataPoint>> parsedStops = new Dictionary<int, List<TripDataPoint>>();
-            Dictionary<BusRoute, int> lastTime = new Dictionary<BusRoute, int>();
+            Dictionary<int, int> lastTime = new Dictionary<int, int>();
             Dictionary<String, int> trips = new Dictionary<string, int>();
             int maxTime = 0;
 
@@ -331,8 +330,11 @@ namespace DataTransform
                         }
                         int current = parseTime(csvr.GetField("arrival_time"));
                         int last;
-                        if (!lastTime.TryGetValue(route, out last))
+                        if (!lastTime.TryGetValue(internalTripId, out last))
                         { last = current; }
+                        else if (current - last == 0)
+                        { continue; }
+                        lastTime[internalTripId] = current;
 
                         List<TripDataPoint> timeSlot;
                         if (!parsedStops.TryGetValue(last, out timeSlot))
