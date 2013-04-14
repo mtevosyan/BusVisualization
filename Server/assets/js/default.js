@@ -3,6 +3,10 @@ var manager;
 var buses;
 var points = [0,1,2,3,4,5,6,7,8,9];
 
+var BUS_REQUEST_INTERVAL = 20;
+var MAX_TIME = 1300;
+var currentTime = 0;
+
 $(document).ready(function() {
 	google.maps.event.addDomListener(window, 'load', initialize);
 	
@@ -19,10 +23,9 @@ $(document).ready(function() {
 	var onGetSchedules = function(schedules) {
 		for (var i = 0; i < 10; i ++) {
 			var bm = getBusMesh(i);
-if (bm)
-{
-			scene.add(bm);
-}
+			if (bm) {
+				scene.add(bm);
+			}
 		}
 	}
 	
@@ -48,13 +51,34 @@ if (bm)
 	}
   
 	BusStopManager.init();
-	BusStopManager.getSchedules(onGetSchedules);
+	// BusStopManager.getSchedules(onGetSchedules);
+    var timer = setInterval(requestBusStops, BUS_REQUEST_INTERVAL);
+    var busInScene = {};
+
+    function requestBusStops() {
+        var busStops = BusStopManager.getBusStops(currentTime);
+        if (busStops) {
+	        for (var i=0; i<busStops.length; i++) {
+	            var busStop = busStops[i];
+	            var bus = getBusMesh(busStop.b);
+	            if (bus) {
+	            	bus.position.x = busStop.x / 50;
+	            	bus.position.y = busStop.y / 50;
+	            	if (!busInScene[busStop.b]) { 
+	            		scene.add(bus);
+	            		busInScene[busStop.b] = true;
+	            	}
+	            }
+	        }
+	    }
+        currentTime = (currentTime + 1) % MAX_TIME;
+    }
 	
 	function initialize() {
 		// init map
 		var mapOptions = {
 			center: new google.maps.LatLng(45.403151,-75.70919),
-			zoom: 16,
+			zoom: 12,
 			disableDefaultUI: true,
 			mapTypeId: google.maps.MapTypeId.ROADMAP
 		};
@@ -108,7 +132,7 @@ if (bm)
 		document.body.appendChild( container );
 		
 		camera = new THREE.PerspectiveCamera( 75, SCREEN_WIDTH / SCREEN_HEIGHT, 1, 100000 );
-		camera.position.z = 140;
+		camera.position.z = 600;
 		
 		scene = new THREE.Scene();
 		// LIGHTS
@@ -210,5 +234,5 @@ if (bm)
 		}
 	});
     
-    setInterval(change_position, 1000);
+    // setInterval(change_position, 1000);
 });
