@@ -35,7 +35,7 @@ var enabledBusRoutes = {};
 var indexData = [];
 
 function readScheduleFile() {
-    var path = __dirname + '\\dataset\\' + locationName + '\\schedules.json';
+    var path = __dirname + '/dataset/' + locationName + '/schedules.json';
     var data = fs.readFileSync(path);
     var retVal = JSON.parse(data);
     return retVal;
@@ -54,7 +54,7 @@ function generateBusData(routeNbr, busNbr, t, nT, X, Y)
 }
 
 function readIndex() {
-    var path = __dirname + '\\dataset\\' + locationName + '\\' + scheduleData[scheduleName].index;
+    var path = __dirname + '/dataset/' + locationName + '/' + scheduleData[scheduleName].index;
     var data = fs.readFileSync(path);
     indexData = JSON.parse(data);
     return indexData;
@@ -63,7 +63,7 @@ function readIndex() {
 function readStopBlockData(from, to) {
     var fromByte = indexData[from];
     var toByte = indexData[to] - 3;
-    var path = __dirname + '\\dataset\\' + locationName + '\\' + scheduleData[scheduleName].data;
+    var path = __dirname + '/dataset/' + locationName + '/' + scheduleData[scheduleName].data;
     var fd = fs.openSync(path, 'r');
     var data = new Buffer(toByte - fromByte);
     var byteRead = fs.readSync(fd, data, 0, toByte - fromByte, fromByte);
@@ -89,7 +89,7 @@ function returnOnBusStopsReceived(s, data) {
 }
 
 function readBusRoutes() {
-    var path = __dirname + '\\dataset\\' + locationName + '\\routes.json';
+    var path = __dirname + '/dataset/' + locationName + '/routes.json';
     var data = fs.readFileSync(path);
     var retVal = JSON.parse(data);
     return retVal;
