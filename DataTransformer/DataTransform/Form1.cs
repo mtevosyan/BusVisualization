@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
+using CsvHelper;
 
 namespace DataTransform
 {
@@ -20,7 +21,7 @@ namespace DataTransform
 
         private void button_Process_Click(object sender, EventArgs e)
         {
-            DirectoryInfo data_source =null;
+            DirectoryInfo data_source = null;
             String data_name = null;
             using (FolderBrowserDialog fbd = new FolderBrowserDialog())
             {
@@ -30,7 +31,7 @@ namespace DataTransform
                 data_source = new DirectoryInfo(fbd.SelectedPath);
             }
             data_name = textBox_name.Text;
-            process_file(data_source, data_name);
+            process_folder(data_source, data_name);
         }
 
         private DirectoryInfo _output_root;
@@ -46,23 +47,27 @@ namespace DataTransform
             }
         }
 
-        private async void process_file(DirectoryInfo input, String Name)
+        private async void process_folder(DirectoryInfo input, String Name)
         {
             await Task.Yield();
             DirectoryInfo output = new DirectoryInfo(Path.Combine(output_root.FullName, Name));
             if (!output.Exists)
             { output.Create(); }
-            try { richTextBox_Output.Text = "Starting: \r\n"+input.FullName+"\r\n to\r\n"+output.FullName; }
+            try { richTextBox_Output.Text = "Starting: \r\n" + input.FullName + "\r\n to\r\n" + output.FullName; }
             catch { }
             ClearFolder(output);
-            FileInfo routeInfo = makeFile(output, "routes.json");
-            FileInfo schedules = makeFile(output, "schedules.json");
-            List<ScheduleInfo> schedule_results = new List<ScheduleInfo>();
-            schedule_results.Add( await process_schedule(input, output, "Weekday"));
-            schedule_results.Add(await process_schedule(input, output, "Weekend"));
-            using (StreamWriter sw = new StreamWriter(routeInfo.FullName))
-            { await sw.WriteAsync("[{r:1,name:'Our First Bus Route'}]"); }
-            using (StreamWriter sw = new StreamWriter(schedules.FullName))
+            Dictionary<String, BusStop> all_stops = await ParseStops(input);
+            BusStop average_location = AverageLocation(all_stops.Values);
+            ConvertAllGPS(all_stops.Values, average_location);
+            AggregatedRouteInfo routes = await parse_routes(input, output);
+
+            List<ScheduleInfo> schedule_results = await parse_schedules(input);
+            foreach (ScheduleInfo sched in schedule_results)
+            {
+                await process_schedule(input, output, sched, routes, all_stops);
+            }
+            FileInfo scheduleOutputFile = makeFile(output, "schedules.json");
+            using (StreamWriter sw = new StreamWriter(scheduleOutputFile.FullName))
             {
                 await sw.WriteAsync("[");
                 String sched_delim = "";
@@ -70,7 +75,7 @@ namespace DataTransform
                 {
                     await sw.WriteAsync(sched_delim);
                     sched_delim = ",";
-                    await sw.WriteAsync("{name:'" + info.name + "', index:'" + info.indexfile.Name + "', data:'" + info.datafile.Name + "',gps_lat:" + info.gpsLat + ",gps_long:" + info.gpsLong + "}");
+                    await sw.WriteAsync("{\"name\":\"" + info.Name + "\", \"index\":\"" + info.indexfile.Name + "\", \"data\":\"" + info.datafile.Name + "\",\"gps_lat\":" + average_location.gps_lat + ",\"gps_long\":" + average_location.gps_lon + "}");
                 }
                 await sw.WriteAsync("]");
             }
@@ -78,38 +83,286 @@ namespace DataTransform
             catch { }
         }
 
+        private async Task<List<ScheduleInfo>> parse_schedules(DirectoryInfo input)
+        {
+            await Task.Yield();
+            FileInfo scheduleInputFile = makeFile(input, "calendar.txt");
+            List<ScheduleInfo> result = new List<ScheduleInfo>();
+            using (StreamReader sr = new StreamReader(scheduleInputFile.FullName))
+            using (CsvReader csvr = new CsvReader(sr))
+            {
+                while (csvr.Read())
+                {
+                    ScheduleInfo info = new ScheduleInfo()
+                    {
+                        Name = csvr.GetField("service_id"),
+                        Monday = csvr.GetField<int>("monday") != 0,
+                        Tuesday = csvr.GetField<int>("tuesday") != 0,
+                        Wednesday = csvr.GetField<int>("wednesday") != 0,
+                        Thursday = csvr.GetField<int>("thursday") != 0,
+                        Friday = csvr.GetField<int>("friday") != 0,
+                        Saturday = csvr.GetField<int>("saturday") != 0,
+                        Sunday = csvr.GetField<int>("sunday") != 0
+                    };
+                    result.Add(info);
+                }
+            }
+            return result;
+        }
+
+        private class ScheduleInfo
+        {
+            public String Name;
+            public FileInfo datafile;
+            public FileInfo indexfile;
+            public bool Monday;
+            public bool Tuesday;
+            public bool Wednesday;
+            public bool Thursday;
+            public bool Friday;
+            public bool Saturday;
+            public bool Sunday;
+        }
+
+        private class AggregatedRouteInfo
+        {
+            public Dictionary<String, BusRoute> routeIdLookup;
+            public Dictionary<String, BusRoute> tripIdLookup;
+        }
+
+        private async Task<AggregatedRouteInfo> parse_routes(DirectoryInfo input, DirectoryInfo output)
+        {
+            await Task.Yield();
+            FileInfo routes = makeFile(input, "routes.txt");
+            Dictionary<String, BusRoute> tripLookup = new Dictionary<string, BusRoute>();
+            Dictionary<String, BusRoute> routeLookup = new Dictionary<string, BusRoute>();
+            int count = 1;
+            using (StreamReader sr = new StreamReader(routes.FullName))
+            using (CsvReader csvr = new CsvReader(sr, CsvConfig))
+            {
+                while (csvr.Read())
+                { routeLookup.Add(csvr.GetField("route_id"), new BusRoute() { id = count++, shortName = csvr.GetField("route_short_name") }); }
+            }
+            FileInfo trips = makeFile(input, "trips.txt");
+            using (StreamReader sr = new StreamReader(trips.FullName))
+            using (CsvReader csvr = new CsvReader(sr, CsvConfig))
+            {
+                while (csvr.Read())
+                {
+                    BusRoute route;
+                    if (routeLookup.TryGetValue(csvr.GetField("route_id"), out route))
+                    {
+                        route.longName = csvr.GetField("trip_headsign");
+                        route.schedule = csvr.GetField("service_id");
+                        tripLookup.Add(csvr.GetField("trip_id"), route);
+                    }
+                }
+            }
+            FileInfo routesOutput = makeFile(output, "routes.json");
+            using (StreamWriter sw = new StreamWriter(routesOutput.FullName))
+            {
+                String routesdelim = "";
+                await sw.WriteAsync("[");
+                foreach (BusRoute route in routeLookup.Values)
+                {
+                    await sw.WriteAsync(routesdelim);
+                    routesdelim = ",\r\n";
+                    await sw.WriteAsync("{\"r\":" + route.id + ",\"name\":\"" + route.shortName.Replace("\"", "") + " " + route.longName.Replace("\"", "") + "\"}");
+                }
+                await sw.WriteAsync("]");
+            }
+            return new AggregatedRouteInfo() { routeIdLookup = routeLookup, tripIdLookup = tripLookup };
+        }
+
+        private class BusRoute
+        {
+            public int id;
+            public String shortName;
+            public String longName;
+            public String schedule;
+        }
+
+        private CsvHelper.Configuration.CsvConfiguration __csvConfig;
+        public CsvHelper.Configuration.CsvConfiguration CsvConfig
+        {
+            get
+            {
+                if (__csvConfig == null)
+                {
+                    __csvConfig = new CsvHelper.Configuration.CsvConfiguration()
+                    {
+                        IsCaseSensitive = false,
+                        IsStrictMode = true,
+                        SkipEmptyRecords = true
+                    };
+                }
+                return __csvConfig;
+            }
+        }
+
+        public BusStop AverageLocation(IEnumerable<BusStop> stops)
+        {
+            double lat_sum = 0;
+            double lon_sum = 0;
+            double count = 0;
+            foreach (BusStop stop in stops)
+            {
+                lat_sum += stop.gps_lat;
+                lon_sum += stop.gps_lon;
+                count++;
+            }
+            return new BusStop()
+            {
+                gps_lat = lat_sum / count,
+                gps_lon = lon_sum / count
+            };
+        }
+
         public async Task<Dictionary<String, BusStop>> ParseStops(DirectoryInfo input)
         {
             await Task.Yield();
-            return null;
+            Dictionary<String, BusStop> result = new Dictionary<string, BusStop>();
+            FileInfo stopfile = makeFile(input, "stops.txt");
+            using (StreamReader sr = new StreamReader(stopfile.FullName))
+            using (CsvReader csvr = new CsvReader(sr, CsvConfig))
+            {
+                while (csvr.Read())
+                {
+                    result.Add(csvr.GetField("stop_id"), new BusStop() { gps_lat = csvr.GetField<double>("stop_lat"), gps_lon = csvr.GetField<double>("stop_lon") });
+                }
+            }
+            return result;
         }
+
+        private void ConvertAllGPS(IEnumerable<BusStop> stops, BusStop zeroPoint)
+        {
+            foreach (BusStop stop in stops)
+            { ConvertGPS(stop, zeroPoint); }
+        }
+
+        private void ConvertGPS(BusStop stop, BusStop zeroPoint)
+        {
+            double x = distance_in_km(zeroPoint.gps_lat, zeroPoint.gps_lat, zeroPoint.gps_lon, stop.gps_lon);
+            double y = distance_in_km(zeroPoint.gps_lat, stop.gps_lat, zeroPoint.gps_lat, zeroPoint.gps_lat);
+
+            if (stop.gps_lon < zeroPoint.gps_lon)
+            { x = -x; }
+
+            if (stop.gps_lat > zeroPoint.gps_lat)
+            { y = -y; }
+
+            stop.x = (int)(x * 1000);
+            stop.y = (int)(y * 1000);
+        }
+
+        private double distance_in_km(double lat1, double lat2, double long1, double long2)
+        {
+            double d2r = Math.PI / 180.0;
+
+            //calculate haversine distance for linear distance
+            double dlong = (long2 - long1) * d2r;
+            double dlat = (lat2 - lat1) * d2r;
+            double a = Math.Pow(Math.Sin(dlat / 2.0), 2) + Math.Cos(lat1 * d2r) * Math.Cos(lat2 * d2r) * Math.Pow(Math.Sin(dlong / 2.0), 2);
+            double c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+            double dist_in_km = 6367 * c;
+            return dist_in_km;
+        }
+
 
         public class BusStop
         {
             public int x;
             public int y;
+            public double gps_lat;
+            public double gps_lon;
         }
 
-        private async Task< ScheduleInfo> process_schedule(DirectoryInfo input, DirectoryInfo output, String scheduleId)
+        private int parseTime(String time)
+        {
+            DateTime t;
+            if (!DateTime.TryParse(time, out t))
+            {
+                return -1;
+            }
+            return (int)t.Subtract(t.Date).TotalMinutes % 1440;
+        }
+
+        private class TripDataPoint
+        {
+            public int routeId;
+            public int tripId;
+            public int time;
+            public int next;
+            public int x;
+            public int y;
+        }
+
+        private async Task process_schedule(DirectoryInfo input, DirectoryInfo output, ScheduleInfo theSchedule, AggregatedRouteInfo routes, Dictionary<String, BusStop> stops)
         {
             Random rnd = new Random();
-            ScheduleInfo temp = new ScheduleInfo
-            {
-                name = scheduleId,
-                datafile = makeFile(output, scheduleId+"-schedule.json"),
-                indexfile = makeFile(output, scheduleId+"-index.json"),
-                gpsLat = 45.439869,
-                gpsLong = -75.695839
+            theSchedule.datafile = makeFile(output, theSchedule.Name + "-schedule.json");
+            theSchedule.indexfile = makeFile(output, theSchedule.Name + "-index.json");
 
-            };
-            using (StreamWriter sw_index = new StreamWriter(temp.indexfile.FullName))
-            using (StreamWriter sw_data = new StreamWriter(temp.datafile.FullName))
-            {                
+            Dictionary<int, List<TripDataPoint>> parsedStops = new Dictionary<int, List<TripDataPoint>>();
+            Dictionary<BusRoute, int> lastTime = new Dictionary<BusRoute, int>();
+            Dictionary<String, int> trips = new Dictionary<string, int>();
+            int maxTime = 0;
+
+            FileInfo stopTimesFiles = makeFile(input, "stop_times.txt");
+            using (StreamReader sr = new StreamReader(stopTimesFiles.FullName))
+            using (CsvReader csvr = new CsvReader(sr, CsvConfig))
+            {
+                while (csvr.Read())
+                {
+                    String externalTripId = csvr.GetField("trip_id");
+                    int internalTripId;
+                    if (!trips.TryGetValue(externalTripId, out internalTripId))
+                    {
+                        internalTripId = trips.Count + 1;
+                        trips.Add(externalTripId, internalTripId);
+                    }
+                    BusRoute route = routes.tripIdLookup[externalTripId];
+                    if (route.schedule == theSchedule.Name)
+                    {
+                        BusStop stop;
+                        if (!stops.TryGetValue(csvr.GetField("stop_id"), out stop))
+                        {
+                            continue;
+                        }
+                        int current = parseTime(csvr.GetField("arrival_time"));
+                        int last;
+                        if (!lastTime.TryGetValue(route, out last))
+                        { last = current; }
+
+                        List<TripDataPoint> timeSlot;
+                        if (!parsedStops.TryGetValue(last, out timeSlot))
+                        {
+                            timeSlot = new List<TripDataPoint>();
+                            parsedStops.Add(last, timeSlot);
+                        }
+                        timeSlot.Add(new TripDataPoint()
+                        {
+                            routeId = route.id,
+                            tripId = internalTripId,
+                            time = last,
+                            next = current - last,
+                            x = stop.x,
+                            y = stop.y
+                        });
+                        if (last > maxTime)
+                        { maxTime = last; }
+                    }
+                }
+            }
+
+            using (StreamWriter sw_index = new StreamWriter(theSchedule.indexfile.FullName))
+            using (StreamWriter sw_data = new StreamWriter(theSchedule.datafile.FullName))
+            {
                 String indexDelim = "";
                 String dataDelim = "";
                 await sw_index.WriteAsync("[");
                 await sw_data.WriteAsync("[");
-                for (int i = 0; i < 1440; i++)
+                for (int i = 0; i < maxTime; i++)
                 {
                     await sw_index.WriteAsync(indexDelim);
                     indexDelim = ",";
@@ -119,33 +372,27 @@ namespace DataTransform
                     dataDelim = ",\r\n";
                     await sw_data.WriteAsync("[");
                     String bus_delim = "";
-                    for (int r = 1; r < 100; r++)
+
+                    List<TripDataPoint> timeslot;
+                    if (parsedStops.TryGetValue(i, out timeslot))
                     {
-                        for (int b = 1; b < 10; b++)
+                        foreach (TripDataPoint data in timeslot)
                         {
                             await sw_data.WriteAsync(bus_delim);
                             bus_delim = ",";
-                            await sw_data.WriteAsync("{x:" + (int)(rnd.Next(-5000, 5000)) + ",y:" + (int)(rnd.Next(-5000, 5000)) + ",r:" + r + ",b:" + b + "}");
+                            await sw_data.WriteAsync("{\"r\":" + data.routeId + ",\"b\":" + data.tripId + ",\"x\":" + data.x + ",\"y\":" + data.y + ",\"n\":" + data.next + "}");
                         }
                     }
                     await sw_data.WriteAsync("]");
                 }
+
                 await sw_index.WriteAsync("]");
                 await sw_data.WriteAsync("]");
                 await sw_index.FlushAsync();
                 await sw_data.FlushAsync();
             }
-            return temp;
         }
 
-        private class ScheduleInfo
-        {
-            public String name;
-            public FileInfo datafile;
-            public FileInfo indexfile;
-            public double gpsLat;
-            public double gpsLong;
-        }
 
         private FileInfo makeFile(DirectoryInfo folder, String name)
         {
