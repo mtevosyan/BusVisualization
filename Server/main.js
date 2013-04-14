@@ -28,11 +28,14 @@ function handler (req, res) {
 }
 
 var locationName = 'ottawa';
+var scheduleData = {};
 var scheduleName = "";
+var routesData =  {};
 var enabledBusRoutes = [];
 
+
 function readScheduleFile() {
-    var path = __dirname + '\\' + locationName + '\\schedules.json';
+    var path = __dirname + '\\dataset\\' + locationName + '\\schedules.json';
     var data = fs.readFileSync(path);
     var retVal = JSON.parse(data);
     return retVal;
@@ -63,14 +66,41 @@ function returnOnBusStopsReceived(s, data) {
     s.emit('onBusStopReturned', retVal);
 }
 
+function readBusRoutes() {
+    var path = __dirname + '\\dataset\\' + locationName + '\\routes.json';
+    var data = fs.readFileSync(path);
+    var retVal = JSON.parse(data);
+    return retVal;
+
+};
+
 function returnOnGetBusNubers(s, data) {
-    var d = [1,2,3,4,5,6];
-    s.emit('onBusRoutesReturned', d);
+    var retVal = [];
+    var routes = readBusRoutes()
+    routes.forEach(function(a) {
+        retVal.push(a.r);
+        routesData[a.r] = a;
+    });
+    s.emit('onBusRoutesReturned', retVal);
 }
 
 function setActiveBusses(s, data) {
-    enabledBusRoutes = data;
-    console.log(enabledBusRoutes);
+    enabledBusRoutes = [];
+    var error = false;
+    data.forEach(function(a) {
+        if(routesData[a]) {
+            enabledBusRoutes.push(a);
+        } else {
+            error = true;
+        }
+    });
+
+    if (!error) {
+        s.emit('ack', {valid: true});
+        console.log(enabledBusRoutes);
+    } else {
+        s.emit('ack', {valid: false});
+    }
 }
 
 function returnGetLocations(s, data) {
@@ -79,21 +109,29 @@ function returnGetLocations(s, data) {
 }
 
 function returnSetLocation(s, data) {
-
     locationName = data;
     s.emit('ack', {valid: 1});
 }
 
 function returnGetSchedules(s, data) {
-    var retVal = ['Weekend', 'Weekday'];
+    var schedule = readScheduleFile();
+    var retVal = [];
+    schedule.forEach(function(a) {
+        retVal.push(a.name);
+        scheduleData[a.name] = a;
+    });
     s.emit('onScheduleReturned', retVal);
 }
 
 function returnSetSchedules(s, data) {
     scheduleName = data;
-    s.emit('ack', {valid: 1});
-}
+    if(scheduleData[scheduleName]) {
+        s.emit('ack', {valid: true});
+    } else {
+        s.emit('ack', {valid: false});
+    };
 
+}
 
 io.sockets.on('connection', function(socket) {
     socket.on('getLocations', function(data) { returnGetLocations(socket, data); });
