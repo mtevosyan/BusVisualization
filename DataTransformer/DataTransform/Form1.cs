@@ -357,6 +357,7 @@ namespace DataTransform
             Dictionary<int, List<TripDataPoint>> parsedStops = new Dictionary<int, List<TripDataPoint>>();
             Dictionary<int, int> lastTime = new Dictionary<int, int>();
             Dictionary<String, int> trips = new Dictionary<string, int>();
+            Dictionary<int, HashSet<int>> observedRoutes = new Dictionary<int, HashSet<int>>();
             int internalTripId;
             foreach (stopTimeInfo stopTime in all_stop_times)
             {
@@ -380,16 +381,16 @@ namespace DataTransform
                     }
                     int current = stopTime.arrival_time;
                     //Try to find the last time this particular bus appeared
-                    int last;
-                    if (!lastTime.TryGetValue(internalTripId, out last))
-                    {
-                        last = current;
-                        lastTime[internalTripId] = current;
-                    }
-                    else if (current - last == 0)
-                    {
-                        continue;
-                    }
+                    //int last;
+                    //if (!lastTime.TryGetValue(internalTripId, out last))
+                    //{
+                        //last = current;
+                        //lastTime[internalTripId] = current;
+                    //}
+                    //else if (current - last == 0)
+                    //{
+                        //continue;
+                    //}
                     
                     List<TripDataPoint> timeSlot;
                     if (!parsedStops.TryGetValue(current, out timeSlot))
@@ -397,19 +398,31 @@ namespace DataTransform
                         timeSlot = new List<TripDataPoint>();
                         parsedStops.Add(current, timeSlot);
                     }
-                    timeSlot.Add(new TripDataPoint()
+                    HashSet<int> seenYesNo;
+                    if (!observedRoutes.TryGetValue(current, out seenYesNo))
                     {
-                        routeId = route.id,
-                        tripId = internalTripId,
-                        time = current,
-                        next = current - last,
-                        x = stop.x,
-                        y = stop.y
-                    });
+                        seenYesNo = new HashSet<int>();
+                        observedRoutes.Add(current, seenYesNo);
+                    }
+
+                    if (!seenYesNo.Contains(internalTripId))
+                    {
+                        TripDataPoint newPoint = new TripDataPoint()
+                        {
+                            routeId = route.id,
+                            tripId = internalTripId,
+                            time = current,
+                            next = -1,
+                            x = stop.x,
+                            y = stop.y
+                        };
+                        timeSlot.Add(newPoint);
+                        seenYesNo.Add(internalTripId);
+                    }
                 }
             }
 
-            parsedStops = ProjectPointsBackwardsInTime(parsedStops);
+            //parsedStops = ProjectPointsBackwardsInTime(parsedStops);
 
             await OutputSchedule(parsedStops, all_stop_times, output, theSchedule, routes, stops);
         }
