@@ -47,7 +47,7 @@ BusStopManager = (function() {
     };
 
     var onBusStopsReturned = function(data) {
-        console.log("---- onBusStopsReturned ------");
+        console.log("---- onBusStopsReturned -----");
         return;
         for (var i=0; i<data.length; i++) {
             buffer[data[i].time] = {
