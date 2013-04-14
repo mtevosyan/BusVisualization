@@ -74,18 +74,19 @@ function readStopBlockData(from, to) {
 }
 
 function returnOnBusStopsReceived(s, data) {
+    var retVal = []
     for(t = data.start; t < data.end + 1; ++t)
     {
         var rawData = readStopBlockData(t, t+1);
-        var retVal = []
         rawData.forEach(function(a) {
             if(enabledBusRoutes[a.r]) {
                 a.t = t;
                 retVal.push(a);
             }
         });
-        s.emit('onBusStopReturned', retVal);
     }
+
+    s.emit('onBusStopReturned', retVal);
 }
 
 function readBusRoutes() {
