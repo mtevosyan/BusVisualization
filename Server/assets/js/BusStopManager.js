@@ -2,8 +2,6 @@ BusStopManager = (function() {
 
     var self = {};
 
-    console.log("---- START -----");
-
     var DEFAULT_LOCATION = 'ottawa';
     var DEFAULT_SCHEDULE = 'Weekday';
     var BUFFER_SIZE = 100;
@@ -16,10 +14,10 @@ BusStopManager = (function() {
     var locations = {};
     var schedules = {};
     var busRoutes = {};
+    var busRoutesCallback = {};
     var socket;
 
     var reset = function() {
-        console.log("---- RESET -----");
         buffer = null;
         buffer = {};
         schedules = null;
@@ -30,20 +28,11 @@ BusStopManager = (function() {
         currentStopTime = BUFFER_SIZE;
     };
 
-    var setLocation = function(location) {
-        reset();
-        socket.emit('setLocation', location);
-    };
-
-    var setSchedule = function(schedule) {
-        reset();
-        socket.emit('setSchedule', schedule);
-    };
-
     var onBusRoutesReturned = function(aBusRoutes) {
+        busRoutesCallback(aBusRoutes);
         busRoutes = aBusRoutes;
-        // socket.emit('setBusRoutes', busRoutes);
-        // socket.emit('getBusStops', { start: 0, end: BUFFER_SIZE});
+        socket.emit('setBusRoutes', busRoutes);
+        socket.emit('getBusStops', { start: 10, end: 25});
     };
 
     var onBusStopsReturned = function(data) {
@@ -51,23 +40,22 @@ BusStopManager = (function() {
         return;
         for (var i=0; i<data.length; i++) {
             buffer[data[i].time] = {
-                routeNumber: data[i].routeNumber,
-                busId: data[i].busId,
+                routeNumber: data[i].r,
+                busId: data[i].b,
                 x: data[i].x,
                 y: data[i].y,
-                arrivalTime: data[i].arrivalTime
+                arrivalTime: data[i].n
             };
         }
     };
 
     self.init = function() {
-        console.log("---- SELF -----");
         socket = io.connect('http://127.0.0.1:3000');
         socket.on('onBusRoutesReturned', onBusRoutesReturned);
         socket.on('onBusStopsReturned', onBusStopsReturned);
         setLocation(DEFAULT_LOCATION);
         setSchedule(DEFAULT_SCHEDULE);
-        // socket.emit('getBusRoutes');
+        socket.emit('getBusRoutes');
     };
 
     self.reset = reset;
@@ -87,8 +75,18 @@ BusStopManager = (function() {
     };
 
     self.getBusRoutes = function(callback) {
-        socket.on('onBusRoutesReturned', callback);
+        busRoutesCallback = callback;
         socket.emit('getBusRoutes', {});
+    };
+
+    var setLocation = function(location) {
+        reset();
+        socket.emit('setLocation', location);
+    };
+
+    var setSchedule = function(schedule) {
+        reset();
+        socket.emit('setSchedule', schedule);
     };
 
     self.enableRouteNumber = function(routeNumber, enable) {
