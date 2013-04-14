@@ -31,8 +31,8 @@ var locationName = 'ottawa';
 var scheduleData = {};
 var scheduleName = "";
 var routesData =  {};
-var enabledBusRoutes = [];
-
+var enabledBusRoutes = {};
+var indexData = [];
 
 function readScheduleFile() {
     var path = __dirname + '\\dataset\\' + locationName + '\\schedules.json';
@@ -53,17 +53,39 @@ function generateBusData(routeNbr, busNbr, t, nT, X, Y)
     return retVal;
 }
 
+function readIndex() {
+    var path = __dirname + '\\dataset\\' + locationName + '\\' + scheduleData[scheduleName].index;
+    var data = fs.readFileSync(path);
+    indexData = JSON.parse(data);
+    return indexData;
+}
+
+function readStopBlockData(from, to) {
+    var fromByte = indexData[from];
+    var toByte = indexData[to] - 3;
+    var path = __dirname + '\\dataset\\' + locationName + '\\' + scheduleData[scheduleName].data;
+    var fd = fs.openSync(path, 'r');
+    var data = new Buffer(toByte - fromByte);
+    var byteRead = fs.readSync(fd, data, 0, toByte - fromByte, fromByte);
+    fs.closeSync(fd);
+    console.log(data.toString());
+    var retVal = JSON.parse(data);
+    return retVal;
+}
+
 function returnOnBusStopsReceived(s, data) {
-    var retVal = [];
-
-    for(time = data.start; time < data.end; ++time) {
-        for(index = 0; index < enabledBusRoutes.length; ++index) {
-            var route = enabledBusRoutes[index];
-            retVal.push(generateBusData(route, route, time, time+1, 12, 24));
-        }
+    for(t = data.start; t < data.end + 1; ++t)
+    {
+        var rawData = readStopBlockData(t, t+1);
+        var retVal = []
+        rawData.forEach(function(a) {
+            if(enabledBusRoutes[a.r]) {
+                a.t = t;
+                retVal.push(a);
+            }
+        });
+        s.emit('onBusStopReturned', retVal);
     }
-
-    s.emit('onBusStopReturned', retVal);
 }
 
 function readBusRoutes() {
@@ -85,11 +107,11 @@ function returnOnGetBusNubers(s, data) {
 }
 
 function setActiveBusses(s, data) {
-    enabledBusRoutes = [];
+    enabledBusRoutes = {};
     var error = false;
     data.forEach(function(a) {
         if(routesData[a]) {
-            enabledBusRoutes.push(a);
+            enabledBusRoutes[a] = 1;
         } else {
             error = true;
         }
@@ -97,7 +119,7 @@ function setActiveBusses(s, data) {
 
     if (!error) {
         s.emit('ack', {valid: true});
-        console.log(enabledBusRoutes);
+        readIndex();
     } else {
         s.emit('ack', {valid: false});
     }
