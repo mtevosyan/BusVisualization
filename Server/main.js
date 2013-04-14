@@ -62,7 +62,9 @@ function readIndex() {
 
 function readStopBlockData(from, to) {
     var fromByte = indexData[from];
-    var toByte = indexData[to] - 3;
+    console.log("fromByte is " + fromByte);
+    var toByte = indexData[to] - 1;
+    console.log("toByte is " + toByte);
     var path = __dirname + '/dataset/' + locationName + '/' + scheduleData[scheduleName].data;
     var fd = fs.openSync(path, 'r');
     var data = new Buffer(toByte - fromByte);
