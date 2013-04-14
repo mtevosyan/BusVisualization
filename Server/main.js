@@ -11,7 +11,11 @@ io.configure(function () {
 app.listen(port);
 
 function handler (req, res) {
-  fs.readFile(__dirname + '/index.html',
+  if(req.url == '/') {
+      req.url = '/index.html';
+  }
+  console.log(req.url);
+  fs.readFile(__dirname + req.url,
   function (err, data) {
     if (err) {
       res.writeHead(500);

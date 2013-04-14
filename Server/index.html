@@ -1,18 +1,97 @@
-<script src="/socket.io/socket.io.js"></script>
-<script>
-  var socket = io.connect('http://127.0.0.1:3000');
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>T9 - Bus</title>
+		<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		
+		<link href="./assets/css/default.css" rel="stylesheet" type="text/css" />
+		<link href="./favicon.ico" rel="shortcut icon" type="image/ico" />
 
-  socket.on('onBusStopsReceived', function(data) {
-      console.log(data);
-  });
+		<script type="text/javascript" src="./assets/js/jquery-1.9.1.min.js"></script>
+		<script type="text/javascript" src="./assets/js/default.js"></script>
+		
+		<script type="text/javascript" src="./assets/js/three.min.js"></script>
+		
+		<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?sensor=false"></script>
+                
+    </head>
+    <body>
+        <div class="row-fluid">
+            <div id="toolbar">
+                <button type = "button" onclick="toolbarB1Clicked()">
+                    B1
+                </button>
+                <button type = "button" onclick="toolbarB2Clicked()">
+                    B2
+                </button>
+                <button type = "button" onclick="toolbarB3Clicked()">
+                    B3
+                </button>
+				Zoom <input id="slider_zoom" type="range" min="8" max="16" step="1" value="16" />
+				
+				<img src="./assets/img/settings.png" id="options_gear">
+            </div>
 
-  socket.on('onBusNumbersReceived', function(data) {
-      console.log(data);
-  });
+            <div id="optionsbar">
+				<div id="options_container">
+					<b>Options</b><br>
+                    <p>
+                    <label>Schedule</label>            
+                    <input type = "radio"
+                           name = "scheduleRadioButton"
+                           id = "weekDay"
+                           value = "Week Day"
+                           checked = "checked" />
+                    <label for = "scheduleRadioButton">Week Day</label>
 
-  socket.emit('getBusNumbers', {});
-  socket.emit('setActiveBusses', [1, 2, 3,4]);
+                    <input type = "radio"
+                           name = "scheduleRadioButton"
+                           id = "holiday"
+                           value = "Holiday"/>
+                    <label for = "scheduleRadioButton">Holiday</label>
+                    </p>
+                    <br>
+                    <br>
+                    <p>
+                    <label>City</label>            
+                    <input type = "radio"
+                           name = "cityRadioButton"
+                           id = "ottawa"
+                           value = "Ottawa"
+                           checked = "checked" />
+                    <label for = "cityRadioButton">Ottawa</label>
 
-  socket.emit('getBusStops', {start: 10, end: 25});
+                    <input type = "radio"
+                           name = "cityRadioButton"
+                           id = "toronto"
+                           value = "Toronto"/>
+                    <label for = "cityRadioButton">Toronto</label>
+                    
+                    <input type = "radio"
+                           name = "cityRadioButton"
+                           id = "montreal"
+                           value = "Montreal"/>
+                    <label for = "cityRadioButton">Montreal</label>
 
-</script>
+                    </p>
+				</div>
+            </div>
+                    
+            <div id="content">
+                <div class="span12">
+                    <div id="map_canvas"></div>
+                    <div id="glcanvas"></div>
+                </div>
+            </div>
+            
+            <div id="sliderbar">
+                <div id="slider">
+                    Stop Movement <input id="slide" type="range" min="0" max="100" step="1" value="50" />
+                    High Speed
+                </div>
+            </div>
+
+        </div>
+    </body>
+</html>
