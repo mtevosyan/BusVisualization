@@ -48,6 +48,7 @@ BusStopManager = (function() {
     };
 
     var onBusStopsReturned = function(busStops) {
+        console.log('onBusStopsReturned: ' + busStops);
         for (var i=0; i<busStops.length; i++) {
             var busStop = busStops[i];
             if (!buffer[busStop.t]) {
@@ -104,14 +105,20 @@ BusStopManager = (function() {
 
     self.getBusStops = function(time) {
         if (currentStopTime - time < MIN_STOP_TIME_DIFF) {
+            console.log('currentStopTime=' + currentStopTime + ' time=' + time);
             // delete old data
+            console.log('Deleting ' + currentStartTime + ' to ' + time);
             for (var i=currentStartTime; i<time; i++) {
                 delete buffer[i];
             }
             currentStartTime = time;
             // request new data ahead
+            console.log('Requesting ' + currentStopTime + ' to ' + (currentStopTime + BUFFER_SIZE));
             socket.emit('getBusStops', { start: currentStopTime, end: currentStopTime + BUFFER_SIZE});
             currentStopTime += BUFFER_SIZE;
+        }
+        if (buffer[time]) {
+            console.log(buffer[time]);
         }
         return buffer[time];
     };
