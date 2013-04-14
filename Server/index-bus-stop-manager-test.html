@@ -1,0 +1,17 @@
+<script type="text/javascript" src="./assets/js/BusStopManager.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+
+  var onGetLocations = function(locations) {
+    console.log(locations);
+  }
+
+  var onGetSchedules = function(schedules) {
+    console.log(schedules); 
+  }
+
+  BusStopManager.init();
+  BusStopManager.getLocations(onGetLocations);
+  BusStopManager.getSchedules(onGetSchedules);
+
+</script>
