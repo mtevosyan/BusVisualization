@@ -90,12 +90,17 @@ BusStopManager = (function() {
         socket.emit('getBusRoutes', {});
     };
 
-    var setLocation = function(location) {
+    self.getGpsCenter = function(callback) {
+        socket.on('onGPSCenterReturned', callback);
+        socket.emit('getGPSCenter', {});
+    };
+
+    self.setLocation = function(location) {
         reset();
         socket.emit('setLocation', location);
     };
 
-    var setSchedule = function(schedule) {
+    self.setSchedule = function(schedule) {
         reset();
         socket.emit('setSchedule', schedule);
     };
