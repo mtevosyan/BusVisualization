@@ -416,7 +416,7 @@ namespace DataTransform
                 }
 
                 await sw_index.WriteAsync("]");
-                await sw_data.WriteAsync("]");
+                await sw_data.WriteAsync("]  ");
                 await sw_index.FlushAsync();
                 await sw_data.FlushAsync();
             }
