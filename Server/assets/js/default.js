@@ -18,33 +18,33 @@ $(document).ready(function() {
 	
 	var onGetSchedules = function(schedules) {
 		for (var i = 0; i < 10; i ++) {
-			var mesh = new THREE.Mesh( zmesh.geometry, zmesh.material );
-			
-			mesh.position.set( i * 22, i+(i*8), 0 );
-			mesh.scale.set( 1, 1, 1 );
-			mesh.overdraw = true;
-			mesh.rotation.x += 6.7;
-			mesh.rotation.y += 8.1;
-			mesh.points = [0,1,2,3,4,5,6,7,8,9];
-		
-			buses.push(mesh);
-			scene.add(mesh);
+			var bm = getBusMesh(i);
+if (bm)
+{
+			scene.add(bm);
+}
 		}
-		//scene.remove(zmesh);
-		
-		setTimeout(function(){change_position();}, 1000);
 	}
 	
 	function change_position() {
+    try
+    {
 		if (points.length != 0) {
 			points.pop();
-			$.each(buses, function(index, bus) {
-				bus.position.x -= 10;
-				bus.position.y -= 6;
-			});
 			
-			setTimeout(function(){change_position();}, 1000);
+            for (var i=0;i<10;i++)
+            {
+                var bm = getBusMesh(i);
+                if (bm)
+                {
+                    bm.position.x -= 10;
+                    bm.position.y -= 10;
+                }
+            }
 		}
+        }catch(err){
+            console.error(err);
+        }
 	}
   
 	BusStopManager.init();
@@ -74,6 +74,23 @@ $(document).ready(function() {
 
 	var mesh, zmesh, geometry;
 	var mouseX = 0, mouseY = 0;
+    
+    var bus_meshes = {};
+    function getBusMesh(id)
+    {
+        var result = bus_meshes[id];
+        if (!result && geometry)
+        {
+            result = new THREE.Mesh( geometry, new THREE.MeshFaceMaterial() );
+            bus_meshes[id] = result;
+            result.position.set( Math.random()*100-50, Math.random()*100-50, 0);
+            result.scale.set( 1, 1, 1 );
+            result.overdraw = true;
+            result.rotation.x += 6.7;
+            result.rotation.y += 8.1;
+        }
+        return result;
+    }
 
 	var windowHalfX = window.innerWidth / 2;
 	var windowHalfY = window.innerHeight / 2;
@@ -119,8 +136,9 @@ $(document).ready(function() {
 		loader.load( "/assets/bus.js", callbackObj );*/
 	}
 
-	function createScene( geometry, x, y, z, b ) {
-		zmesh = new THREE.Mesh( geometry, new THREE.MeshFaceMaterial() );
+	function createScene( _geometry, x, y, z, b ) {
+    geometry = _geometry;
+		zmesh = new THREE.Mesh( _geometry, new THREE.MeshFaceMaterial() );
 		zmesh.position.set( x, y, z );
 		zmesh.scale.set( 1, 1, 1 );
 		zmesh.overdraw = true;
@@ -191,4 +209,6 @@ $(document).ready(function() {
 			});
 		}
 	});
+    
+    setInterval(change_position, 1000);
 });
