@@ -1,5 +1,7 @@
 BusStopManager = (function() {
 
+    var DEFAULT_LOCATION = 'ottawa';
+    var DEFAULT_SCHEDULE = 'weekday';
     var BUFFER_SIZE = 100;
     var MIN_STOP_TIME_DIFF = 25;
 
@@ -7,17 +9,33 @@ BusStopManager = (function() {
 
     var currentStartTime = 0;
     var currentStopTime = BUFFER_SIZE;
+    var locations = {};
+    var schedules = {};
     var busRoutes = {};
     var socket;
 
     var self = function() {
         socket = io.connect('http://localhost:3000');
-        socket.on('onBusNumbersReceived', self.onBusRoutesRecieved());
-        socket.on('onBusStopsReceived', self.onBusStopsReceived());
+        socket.on('onLocationsReturned', self.onLocationsReturned);
+        socket.on('onSchedulesReturned', self.onSchedulesReturned);
+        socket.on('onBusNumbersReturned', self.onBusRoutesReturned);
+        socket.on('onBusStopsReturned', self.onBusStopsReturned);
+        setLocation(DEFAULT_LOCATION);
+        setSchedule(DEFAULT_SCHEDULE);
         socket.emit('getBusRoutes');
     };
 
     // --- Interface ---
+
+    self.setLocation = function(location) {
+        reset();
+        socket.emit('setLocation', location);
+    };
+
+    self.setSchedule = function(schedule) {
+        reset();
+        socket.emit('setSchedule', schedule);
+    };
 
     self.getBusRoutes = function() {
         return busRoutes;
@@ -46,23 +64,44 @@ BusStopManager = (function() {
         return buffer[time];
     };
 
-    // --- Server callbacks ---
+    // --- Private functions ---
 
-    self.onBusRoutesReceived = function(aBusRoutes) {
-        console.log(aBusRoutes);
-        busRoutes = aBusRoutes;
-        socket.emit('setBusRoutes', busRoutes);
-        socket.emit('getBusStops', { start: 0, end: BUFFER_SIZE});
+    self.reset = function() {
+        buffer = null;
+        buffer = {};
+        schedules = null;
+        schedules = {};
+        busRoutes = null;
+        busRoutes = {};
+        currentStartTime = 0;
+        currentStopTime = BUFFER_SIZE;
     };
 
-    self.onBusStopsReceived = function(data) {
+    // --- Server callbacks ---
+
+    self.onLocationsReturned = function(aLocations) {
+        locations = aLocations;
+    };
+
+    self.onSchedulesReturned = function(aSchedules) {
+        schedules = aSchedules;
+    };
+
+    self.onBusRoutesReturned = function(aBusRoutes) {
+        console.log(aBusRoutes);
+        // busRoutes = aBusRoutes;
+        // socket.emit('setBusRoutes', busRoutes);
+        // socket.emit('getBusStops', { start: 0, end: BUFFER_SIZE});
+    };
+
+    self.onBusStopsReturned = function(data) {
         for (var i=0; i<data.length; i++) {
             buffer[data[i].time] = {
                 routeNumber: data[i].routeNumber,
                 busId: data[i].busId,
                 x: data[i].x,
                 y: data[i].y,
-                nextTime: data[i].nextTime
+                arrivalTime: data[i].arrivalTime
             };
         }
     };
