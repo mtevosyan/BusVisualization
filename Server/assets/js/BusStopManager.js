@@ -3,7 +3,7 @@ BusStopManager = (function() {
     var self = {};
 
     var DEFAULT_LOCATION = 'ottawa';
-    var DEFAULT_SCHEDULE = 'Weekday';
+    var DEFAULT_SCHEDULE = 'SEPT12-SEPDA12-Weekday-09';
     var BUFFER_SIZE = 100;
     var MIN_STOP_TIME_DIFF = 25;
 
@@ -14,7 +14,7 @@ BusStopManager = (function() {
     var locations = {};
     var schedules = {};
     var busRoutes = {};
-    var busRoutesCallback = {};
+    var busRoutesCallback = null;
     var socket;
 
     var reset = function() {
@@ -29,24 +29,35 @@ BusStopManager = (function() {
     };
 
     var onBusRoutesReturned = function(aBusRoutes) {
-        busRoutesCallback(aBusRoutes);
+        console.log("---- onBusRoutesReturned -----");
+        console.log(aBusRoutes);
+        if (busRoutesCallback) {
+            busRoutesCallback(aBusRoutes);
+        }
         busRoutes = aBusRoutes;
         socket.emit('setBusRoutes', busRoutes);
-        socket.emit('getBusStops', { start: 10, end: 25});
+        socket.emit('getBusStops', { start: 800, end: 1000});
     };
 
-    var onBusStopsReturned = function(data) {
+    var onBusStopsReturned = function(busStop) {
         console.log("---- onBusStopsReturned -----");
         return;
-        for (var i=0; i<data.length; i++) {
-            buffer[data[i].time] = {
-                routeNumber: data[i].r,
-                busId: data[i].b,
-                x: data[i].x,
-                y: data[i].y,
-                arrivalTime: data[i].n
-            };
-        }
+        buffer[busStop.time] = {
+            routeNumber: busStop.r,
+            busId: busStop.b,
+            x: busStop.x,
+            y: busStop.y,
+            arrivalTime: busStop.n
+        };
+        // for (var i=0; i<data.length; i++) {
+        //     buffer[data[i].time] = {
+        //         routeNumber: data[i].r,
+        //         busId: data[i].b,
+        //         x: data[i].x,
+        //         y: data[i].y,
+        //         arrivalTime: data[i].n
+        //     };
+        // }
     };
 
     self.init = function() {
