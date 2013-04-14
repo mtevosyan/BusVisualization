@@ -12,6 +12,8 @@ $(document).ready(function() {
 			mapTypeId: google.maps.MapTypeId.ROADMAP
 		};
 		map = new google.maps.Map(document.getElementById("map_canvas"), mapOptions);
+        var trafficLayer = new google.maps.TrafficLayer();
+        trafficLayer.setMap(map);
 	}
 	
 	var SCREEN_WIDTH = window.innerWidth;
