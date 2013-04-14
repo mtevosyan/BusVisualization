@@ -1,7 +1,54 @@
 var map;
-	
+var manager;
+var buses;
+var points = [0,1,2,3,4,5,6,7,8,9];
+
 $(document).ready(function() {
 	google.maps.event.addDomListener(window, 'load', initialize);
+	
+	buses = new Array();
+	
+	var loader = new THREE.JSONLoader(),
+	callbackObj = function( geometry ) { createScene( geometry, 0, 0, 0, 0 ) };
+	loader.load( "./assets/bus.js", callbackObj );
+	
+	var onGetBusStops = function(busStops) {
+		console.log('busStops');
+	}
+	
+	var onGetSchedules = function(schedules) {
+		for (var i = 0; i < 10; i ++) {
+			var mesh = new THREE.Mesh( zmesh.geometry, zmesh.material );
+			
+			mesh.position.set( i * 22, i+(i*8), 0 );
+			mesh.scale.set( 1, 1, 1 );
+			mesh.overdraw = true;
+			mesh.rotation.x += 6.7;
+			mesh.rotation.y += 8.1;
+			mesh.points = [0,1,2,3,4,5,6,7,8,9];
+		
+			buses.push(mesh);
+			scene.add(mesh);
+		}
+		//scene.remove(zmesh);
+		
+		setTimeout(function(){change_position();}, 1000);
+	}
+	
+	function change_position() {
+		if (points.length != 0) {
+			points.pop();
+			$.each(buses, function(index, bus) {
+				bus.position.x -= 10;
+				bus.position.y -= 6;
+			});
+			
+			setTimeout(function(){change_position();}, 1000);
+		}
+	}
+  
+	BusStopManager.init();
+	BusStopManager.getSchedules(onGetSchedules);
 	
 	function initialize() {
 		// init map
@@ -67,9 +114,9 @@ $(document).ready(function() {
 		catch (e) {
 		}
 		
-		var loader = new THREE.JSONLoader(),
+		/*var loader = new THREE.JSONLoader(),
 			callbackObj = function( geometry ) { createScene( geometry, 0, 0, 0, 0 ) };
-		loader.load( "./assets/bus.js", callbackObj );
+		loader.load( "/assets/bus.js", callbackObj );*/
 	}
 
 	function createScene( geometry, x, y, z, b ) {
@@ -79,7 +126,7 @@ $(document).ready(function() {
 		zmesh.overdraw = true;
 		zmesh.rotation.x += 6.7;
 		zmesh.rotation.y += 8.1;
-		scene.add( zmesh );
+		//scene.add( zmesh );
 	}
 	
 	function onDocumentMouseMove(event) {
@@ -96,8 +143,8 @@ $(document).ready(function() {
 	
 	function render() {
 		t += .01;
-				//camera.position.x += ( mouseX/3 - camera.position.x ) * .1;
-				//camera.position.y += ( - mouseY/2 - camera.position.y ) * .1;
+		//camera.position.x += ( mouseX/3 - camera.position.x ) * .1;
+		//camera.position.y += ( - mouseY/2 - camera.position.y ) * .1;
 		camera.lookAt( scene.position );
 		if ( render_gl && has_gl ) {
 			webglRenderer.render( scene, camera );
@@ -113,7 +160,10 @@ $(document).ready(function() {
 		var vl = parseFloat($(this).val());
 		
 		map.setZoom(vl);
-		zmesh.scale.set( 1/(16-vl+1), 1/(16-vl+1), 1/(16-vl+1) );
+		
+		$.each(buses, function(index, bus) {
+			bus.scale.set(1/(16-vl+1), 1/(16-vl+1), 1/(16-vl+1));
+		});
 	});
 	
 	$("#options_gear").bind('click', function() {
