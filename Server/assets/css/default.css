@@ -1,6 +1,6 @@
 html { height: 100% }
 
-body { height: 100%; margin: 0px; padding: 0px }
+body { height: 100%; margin: 0px; padding: 0px; overflow: hidden }
 
 #map_canvas {
 	width: 100%;
