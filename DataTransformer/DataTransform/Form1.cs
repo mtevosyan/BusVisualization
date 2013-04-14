@@ -62,10 +62,18 @@ namespace DataTransform
             AggregatedRouteInfo routes = await parse_routes(input, output);
 
             List<ScheduleInfo> schedule_results = await parse_schedules(input);
+            try { richTextBox_Output.Text = "Reading stop times"; }
+            catch { }
             List<stopTimeInfo> all_stop_times = await LoadStopTimes(input);
+            try { richTextBox_Output.Text = "Sorting Data"; }
+            catch { }
+            all_stop_times.Sort();
+            try { richTextBox_Output.Text = "Processing Schedules"; }
+            catch { }
             foreach (ScheduleInfo sched in schedule_results)
             {
                 await process_schedule(all_stop_times, output, sched, routes, all_stops);
+                break;
             }
             FileInfo scheduleOutputFile = makeFile(output, "schedules.json");
             using (StreamWriter sw = new StreamWriter(scheduleOutputFile.FullName))
@@ -299,11 +307,20 @@ namespace DataTransform
             public int y;
         }
 
-        private class stopTimeInfo
+        private class stopTimeInfo : IComparable<stopTimeInfo>
         {
             public String trid_id;
             public String stop_id;
             public String arrival_time;
+
+            public int CompareTo(stopTimeInfo other)
+            {
+                if (other == null)
+                { return 1; }
+                if (arrival_time == null)
+                { return other.arrival_time == null ? 0 : -1; }
+                return arrival_time.CompareTo(other.arrival_time);
+            }
         }
 
         private async Task<List<stopTimeInfo>> LoadStopTimes(DirectoryInfo input)
@@ -424,6 +441,7 @@ namespace DataTransform
 
         private Dictionary<int, List<TripDataPoint>> ProjectPointsBackwardsInTime(Dictionary<int, List<TripDataPoint>> orig)
         {
+            Dictionary<int, HashSet<int>> duplicateFinder = new Dictionary<int, HashSet<int>>();
             Dictionary<int, List<TripDataPoint>> result = new Dictionary<int, List<TripDataPoint>>();
             foreach (int timeslot in orig.Keys)
             {
@@ -431,12 +449,22 @@ namespace DataTransform
                 {
                     int newTime = timeslot - point.next;
                     List<TripDataPoint> resultTimeSlot;
+                    HashSet<int> dups;
                     if (!result.TryGetValue(newTime, out resultTimeSlot))
                     {
                         resultTimeSlot = new List<TripDataPoint>();
                         result.Add(newTime, resultTimeSlot);
                     }
-                    resultTimeSlot.Add(point);
+                    if (!duplicateFinder.TryGetValue(newTime, out dups))
+                    {
+                        dups = new HashSet<int>();
+                        duplicateFinder.Add(newTime, dups);
+                    }
+                    if (!dups.Contains(point.routeId))
+                    {
+                        resultTimeSlot.Add(point);
+                        dups.Add(point.routeId);
+                    }
                 }
             }
             return result;
