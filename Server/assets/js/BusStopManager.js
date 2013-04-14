@@ -44,11 +44,10 @@ BusStopManager = (function() {
         }
         busRoutes = aBusRoutes;
         socket.emit('setBusRoutes', busRoutes);
-        socket.emit('getBusStops', { start: 1000, end: 1100});
+        socket.emit('getBusStops', { start: 0, end: BUFFER_SIZE});
     };
 
     var onBusStopsReturned = function(busStops) {
-        console.log("---- onBusStopsReturned ----");
         for (var i=0; i<busStops.length; i++) {
             var busStop = busStops[i];
             if (!buffer[busStop.t]) {
