@@ -14,6 +14,10 @@
       console.log(data);
   });
 
+  socket.on('onGPSCenterReturned', function(data) {
+      console.log(data);
+  });
+
   socket.on('onScheduleReturned', function(data) {
       console.log(data);
   });
@@ -27,6 +31,8 @@
 
   socket.emit('getSchedules', {});
   socket.emit('setSchedule', "SEPT12-SEPDA12-Weekday-09");
+
+  socket.emit('getGPSCenter', {});
   
   socket.emit('getBusRoutes', {});
   socket.emit('setBusRoutes', [29]);

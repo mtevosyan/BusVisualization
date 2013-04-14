@@ -28,7 +28,7 @@ function handler (req, res) {
 }
 
 var locationName = 'ottawa';
-var scheduleData = {};
+var scheduleData = null;
 var scheduleName = "";
 var routesData =  {};
 var enabledBusRoutes = {};
@@ -135,17 +135,30 @@ function returnSetLocation(s, data) {
     s.emit('ack', {valid: 1});
 }
 
-function returnGetSchedules(s, data) {
+function processSchedulesData() {
     var schedule = readScheduleFile();
+    scheduleData = {};
+    schedule.forEach(function(a) {
+        scheduleData[a.name] = a;
+    });
+
+    return schedule;
+}
+
+function returnGetSchedules(s, data) {
+    var schedule = processSchedulesData();
     var retVal = [];
     schedule.forEach(function(a) {
         retVal.push(a.name);
-        scheduleData[a.name] = a;
     });
     s.emit('onScheduleReturned', retVal);
 }
 
 function returnSetSchedules(s, data) {
+    if (!scheduleData) {
+        processSchedulesData();
+    }
+
     scheduleName = data;
     if(scheduleData[scheduleName]) {
         s.emit('ack', {valid: true});
@@ -155,11 +168,19 @@ function returnSetSchedules(s, data) {
 
 }
 
+function returnGetGPSCenter(s, data) {
+    var retVal = {gps_lat: scheduleData[scheduleName].gps_lat,
+                  gps_long: scheduleData[scheduleName].gps_long};
+
+    s.emit('onGPSCenterReturned', retVal);
+}
+
 io.sockets.on('connection', function(socket) {
     socket.on('getLocations', function(data) { returnGetLocations(socket, data); });
     socket.on('setLocation', function(data) { returnSetLocation(socket, data); });
     socket.on('getSchedules', function(data) { returnGetSchedules(socket, data); });
     socket.on('setSchedule', function(data) { returnSetSchedules(socket, data); });
+    socket.on('getGPSCenter', function(data) { returnGetGPSCenter(socket, data); });
     socket.on('getBusRoutes', function(data) { returnOnGetBusNubers(socket, data); });
     socket.on('setBusRoutes', function(data) { setActiveBusses(socket, data); });
     socket.on('getBusStops', function(data) { returnOnBusStopsReceived(socket, data); });
