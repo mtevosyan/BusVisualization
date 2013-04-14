@@ -62,9 +62,10 @@ namespace DataTransform
             AggregatedRouteInfo routes = await parse_routes(input, output);
 
             List<ScheduleInfo> schedule_results = await parse_schedules(input);
+            List<stopTimeInfo> all_stop_times = await LoadStopTimes(input);
             foreach (ScheduleInfo sched in schedule_results)
             {
-                await process_schedule(input, output, sched, routes, all_stops);
+                await process_schedule(all_stop_times, output, sched, routes, all_stops);
             }
             FileInfo scheduleOutputFile = makeFile(output, "schedules.json");
             using (StreamWriter sw = new StreamWriter(scheduleOutputFile.FullName))
@@ -298,7 +299,35 @@ namespace DataTransform
             public int y;
         }
 
-        private async Task process_schedule(DirectoryInfo input, DirectoryInfo output, ScheduleInfo theSchedule, AggregatedRouteInfo routes, Dictionary<String, BusStop> stops)
+        private class stopTimeInfo
+        {
+            public String trid_id;
+            public String stop_id;
+            public String arrival_time;
+        }
+
+        private async Task<List<stopTimeInfo>> LoadStopTimes(DirectoryInfo input)
+        {
+            await Task.Yield();
+            List<stopTimeInfo> result = new List<stopTimeInfo>();
+            FileInfo stopTimesFiles = makeFile(input, "stop_times.txt");
+            using (StreamReader sr = new StreamReader(stopTimesFiles.FullName))
+            using (CsvReader csvr = new CsvReader(sr, CsvConfig))
+            {
+                while (csvr.Read())
+                {
+                    result.Add(new stopTimeInfo()
+                    {
+                        trid_id = csvr.GetField("trip_id"),
+                        stop_id = csvr.GetField("stop_id"),
+                        arrival_time = csvr.GetField("arrival_time")
+                    });
+                }
+            }
+            return result;
+        }
+
+        private async Task process_schedule(List<stopTimeInfo> all_stop_times, DirectoryInfo output, ScheduleInfo theSchedule, AggregatedRouteInfo routes, Dictionary<String, BusStop> stops)
         {
             Random rnd = new Random();
             theSchedule.datafile = makeFile(output, theSchedule.Name + "-schedule.json");
@@ -308,53 +337,48 @@ namespace DataTransform
             Dictionary<String, int> trips = new Dictionary<string, int>();
             int maxTime = 0;
 
-            FileInfo stopTimesFiles = makeFile(input, "stop_times.txt");
-            using (StreamReader sr = new StreamReader(stopTimesFiles.FullName))
-            using (CsvReader csvr = new CsvReader(sr, CsvConfig))
+            foreach (stopTimeInfo stopTime in all_stop_times)
             {
-                while (csvr.Read())
+                String externalTripId = stopTime.trid_id;
+                int internalTripId;
+                if (!trips.TryGetValue(externalTripId, out internalTripId))
                 {
-                    String externalTripId = csvr.GetField("trip_id");
-                    int internalTripId;
-                    if (!trips.TryGetValue(externalTripId, out internalTripId))
+                    internalTripId = trips.Count + 1;
+                    trips.Add(externalTripId, internalTripId);
+                }
+                BusRoute route = routes.tripIdLookup[externalTripId];
+                if (route.schedule == theSchedule.Name)
+                {
+                    BusStop stop;
+                    if (!stops.TryGetValue(stopTime.stop_id, out stop))
                     {
-                        internalTripId = trips.Count + 1;
-                        trips.Add(externalTripId, internalTripId);
+                        continue;
                     }
-                    BusRoute route = routes.tripIdLookup[externalTripId];
-                    if (route.schedule == theSchedule.Name)
-                    {
-                        BusStop stop;
-                        if (!stops.TryGetValue(csvr.GetField("stop_id"), out stop))
-                        {
-                            continue;
-                        }
-                        int current = parseTime(csvr.GetField("arrival_time"));
-                        int last;
-                        if (!lastTime.TryGetValue(internalTripId, out last))
-                        { last = current; }
-                        else if (current - last == 0)
-                        { continue; }
-                        lastTime[internalTripId] = current;
+                    int current = parseTime(stopTime.arrival_time);
+                    int last;
+                    if (!lastTime.TryGetValue(internalTripId, out last))
+                    { last = current; }
+                    else if (current - last == 0)
+                    { continue; }
+                    lastTime[internalTripId] = current;
 
-                        List<TripDataPoint> timeSlot;
-                        if (!parsedStops.TryGetValue(last, out timeSlot))
-                        {
-                            timeSlot = new List<TripDataPoint>();
-                            parsedStops.Add(last, timeSlot);
-                        }
-                        timeSlot.Add(new TripDataPoint()
-                        {
-                            routeId = route.id,
-                            tripId = internalTripId,
-                            time = last,
-                            next = current - last,
-                            x = stop.x,
-                            y = stop.y
-                        });
-                        if (last > maxTime)
-                        { maxTime = last; }
+                    List<TripDataPoint> timeSlot;
+                    if (!parsedStops.TryGetValue(last, out timeSlot))
+                    {
+                        timeSlot = new List<TripDataPoint>();
+                        parsedStops.Add(last, timeSlot);
                     }
+                    timeSlot.Add(new TripDataPoint()
+                    {
+                        routeId = route.id,
+                        tripId = internalTripId,
+                        time = last,
+                        next = current - last,
+                        x = stop.x,
+                        y = stop.y
+                    });
+                    if (last > maxTime)
+                    { maxTime = last; }
                 }
             }
 
@@ -371,10 +395,10 @@ namespace DataTransform
                 {
                     await sw_index.WriteAsync(indexDelim);
                     indexDelim = ",";
-                    await sw_data.FlushAsync();
-                    await sw_index.WriteAsync(sw_data.BaseStream.Position.ToString());
                     await sw_data.WriteAsync(dataDelim);
                     dataDelim = ",\r\n";
+                    await sw_data.FlushAsync();
+                    await sw_index.WriteAsync(sw_data.BaseStream.Position.ToString());
                     await sw_data.WriteAsync("[");
                     String bus_delim = "";
 
