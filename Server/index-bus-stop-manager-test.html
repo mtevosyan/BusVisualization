@@ -13,9 +13,21 @@
   var onGetBusRoutes = function(busRoutes) {
     console.log(busRoutes);
   }
+
+  var time = 0;
+
+  var requestBusStops = function() {
+    BusStopManager.getBusStops(time);
+    time++;
+    if (time > 1300) {
+      clearInterval(value);
+    }
+  }
   
   BusStopManager.init();
-  BusStopManager.getLocations(onGetLocations);
-  BusStopManager.getSchedules(onGetSchedules);
+  // BusStopManager.getLocations(onGetLocations);
+  // BusStopManager.getSchedules(onGetSchedules);
+  
+  var value = setInterval(requestBusStops,200);
 
 </script>
