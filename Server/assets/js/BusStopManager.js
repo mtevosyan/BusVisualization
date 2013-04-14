@@ -1,59 +1,65 @@
 BusStopManager = (function() {
-try{
+
     var BUFFER_SIZE = 100;
     var MIN_STOP_TIME_DIFF = 25;
 
     var buffer = {};
 
-    var currentTimeRequest = 0;
-    var lastStopTime = BUFFER_SIZE;
-    var busNumbers = {};
-    var busNumberEnabled = {};
+    var currentStartTime = 0;
+    var currentStopTime = BUFFER_SIZE;
+    var busRoutes = {};
     var socket;
 
     var self = function() {
         socket = io.connect('http://localhost:3000');
-        socket.on('onBusNumbersReceived', self.onBusNumbersRecieved());
+        socket.on('onBusNumbersReceived', self.onBusRoutesRecieved());
         socket.on('onBusStopsReceived', self.onBusStopsReceived());
-        socket.emit('getBusNumbers');
+        socket.emit('getBusRoutes');
     };
 
     // --- Interface ---
 
-    self.getBusNumbers = function() {
-        return busNumbers;
+    self.getBusRoutes = function() {
+        return busRoutes;
     };
 
-    self.enableBusNumber = function(busNumber, enable) {
+    self.enableRouteNumber = function(routeNumber, enable) {
         if (enable) {
-            busNumbers.insert(busNumber);
+            busRoutes.insert(routeNumber);
         } else {
-            delete busNumbers[busNumbers];
+            delete busRoutes[routeNumber];
         }
+        socket.emit('setBusRoutes', busRoutes);
     };
 
     self.getBusStops = function(time) {
-        currentTimeRequest = time;
-        if (lastStopTime - time < MIN_STOP_TIME_DIFF) {
-            socket.emit('getBusStops', { start: lastStopTime, end: lastStopTime + BUFFER_SIZE});
-            lastStopTime = lastStopTime + BUFFER_SIZE;
+        if (currentStopTime - time < MIN_STOP_TIME_DIFF) {
+            // delete old data
+            for (var i=currentStartTime; i<time; i++) {
+                delete buffer[i];
+            }
+            currentStartTime = time;
+            // request new data ahead
+            socket.emit('getBusStops', { start: currentStopTime, end: currentStopTime + BUFFER_SIZE});
+            currentStopTime += BUFFER_SIZE;
         }
         return buffer[time];
     };
 
     // --- Server callbacks ---
 
-    self.onBusNumbersReceived = function(aBusNumbers) {
-        console.log(aBusNumbers);
-        // busNumbers = aBusNumbers;
-        // socket.emit('getBusStops', { start: 0, end: BUFFER_SIZE});
+    self.onBusRoutesReceived = function(aBusRoutes) {
+        console.log(aBusRoutes);
+        busRoutes = aBusRoutes;
+        socket.emit('setBusRoutes', busRoutes);
+        socket.emit('getBusStops', { start: 0, end: BUFFER_SIZE});
     };
 
     self.onBusStopsReceived = function(data) {
         for (var i=0; i<data.length; i++) {
             buffer[data[i].time] = {
                 routeNumber: data[i].routeNumber,
-                busNumber: data[i].busNumber,
+                busId: data[i].busId,
                 x: data[i].x,
                 y: data[i].y,
                 nextTime: data[i].nextTime
@@ -61,8 +67,4 @@ try{
         }
     };
     return self;
-}catch(err)
-{
-    console.log(err);
-}
 })();
