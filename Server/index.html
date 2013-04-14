@@ -19,18 +19,12 @@
     <body>
         <div class="row-fluid">
             <div id="toolbar">
-                <button type = "button" onclick="toolbarB1Clicked()">
-                    B1
-                </button>
-                <button type = "button" onclick="toolbarB2Clicked()">
-                    B2
-                </button>
-                <button type = "button" onclick="toolbarB3Clicked()">
-                    B3
-                </button>
-				Zoom <input id="slider_zoom" type="range" min="8" max="16" step="1" value="16" />
-				
-				<img src="./assets/img/settings.png" id="options_gear">
+                <img src="./assets/img/allBuses.png" title="Select to follow all buses" id="allbuses">
+                <img src="./assets/img/oneBus.png" title="Select to follow one bus" id="onebus">
+                <img src="./assets/img/flatview.png" title="Flat Display" id="flatDisplay">
+                <img src="./assets/img/angularview.png" title="Angular Display" id="angularDisplay">
+                <input id="slider_zoom" type="range" min="8" max="16" step="1" value="16" />
+               <img src="./assets/img/settings.png" id="options_gear">
             </div>
 
             <div id="optionsbar">
@@ -86,7 +80,7 @@
             </div>
             
             <div id="sliderbar">
-                <div id="slider">
+                <div id="slider_speed">
                     Stop Movement <input id="slide" type="range" min="0" max="100" step="1" value="50" />
                     High Speed
                 </div>
