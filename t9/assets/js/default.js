@@ -9,7 +9,7 @@ $(document).ready(function() {
 		// init map
 		var mapOptions = {
 			center: new google.maps.LatLng(45.403151,-75.70919),
-			zoom: 13,
+			zoom: 16,
 			disableDefaultUI: true,
 			mapTypeId: google.maps.MapTypeId.ROADMAP
 		};
@@ -69,7 +69,19 @@ $(document).ready(function() {
 	});
 	
 	$("#slider_zoom").bind('change', function() {
-		console.log($(this).val());
+		var delta = .19;
+		var diff = map.getZoom();
+		var vl = parseFloat($(this).val());
+		map.setZoom(vl);
+		if (vl > diff) {
+			mesh.scale.x += delta;
+			mesh.scale.y += delta;
+			mesh.scale.z += delta;
+		} else {
+			mesh.scale.x -= delta;
+			mesh.scale.y -= delta;
+			mesh.scale.z -= delta;
+		}
 	});
 	
 	$("#options_gear").bind('click', function() {
