@@ -67,7 +67,7 @@ $(document).ready(function() {
 		
 		var loader = new THREE.JSONLoader(),
 			callbackObj = function( geometry ) { createScene( geometry, 0, 0, 0, 0 ) };
-		loader.load( "/assets/bus.js", callbackObj );
+		loader.load( "./assets/bus.js", callbackObj );
 	}
 
 	function createScene( geometry, x, y, z, b ) {
