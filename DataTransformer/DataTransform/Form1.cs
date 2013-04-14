@@ -73,6 +73,7 @@ namespace DataTransform
                 String sched_delim = "";
                 foreach (ScheduleInfo info in schedule_results)
                 {
+                    if (info.datafile == null) { continue; }
                     await sw.WriteAsync(sched_delim);
                     sched_delim = ",\r\n";
                     await sw.WriteAsync("{\"name\":\"" + info.Name + "\", \"index\":\"" + info.indexfile.Name + "\", \"data\":\"" + info.datafile.Name + "\",\"gps_lat\":" + average_location.gps_lat + ",\"gps_long\":" + average_location.gps_lon + "}");
@@ -357,6 +358,8 @@ namespace DataTransform
                 }
             }
 
+            parsedStops = ProjectPointsBackwardsInTime(parsedStops);
+
             using (StreamWriter sw_index = new StreamWriter(theSchedule.indexfile.FullName))
             using (StreamWriter sw_data = new StreamWriter(theSchedule.datafile.FullName))
             {
@@ -395,6 +398,25 @@ namespace DataTransform
             }
         }
 
+        private Dictionary<int, List<TripDataPoint>> ProjectPointsBackwardsInTime(Dictionary<int, List<TripDataPoint>> orig)
+        {
+            Dictionary<int, List<TripDataPoint>> result = new Dictionary<int, List<TripDataPoint>>();
+            foreach (int timeslot in orig.Keys)
+            {
+                foreach (TripDataPoint point in orig[timeslot])
+                {
+                    int newTime = timeslot - point.next;
+                    List<TripDataPoint> resultTimeSlot;
+                    if (!result.TryGetValue(newTime, out resultTimeSlot))
+                    {
+                        resultTimeSlot = new List<TripDataPoint>();
+                        result.Add(newTime, resultTimeSlot);
+                    }
+                    resultTimeSlot.Add(point);
+                }
+            }
+            return result;
+        }
 
         private FileInfo makeFile(DirectoryInfo folder, String name)
         {
