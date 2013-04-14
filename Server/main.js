@@ -27,7 +27,16 @@ function handler (req, res) {
   });
 }
 
+var locationName = 'ottawa';
+var scheduleName = "";
 var enabledBusRoutes = [];
+
+function readScheduleFile() {
+    var path = __dirname + '\\' + locationName + '\\schedules.json';
+    var data = fs.readFileSync(path);
+    var retVal = JSON.parse(data);
+    return retVal;
+}
 
 function generateBusData(routeNbr, busNbr, t, nT, X, Y)
 {
@@ -41,7 +50,6 @@ function generateBusData(routeNbr, busNbr, t, nT, X, Y)
     return retVal;
 }
 
-
 function returnOnBusStopsReceived(s, data) {
     var retVal = [];
 
@@ -52,12 +60,12 @@ function returnOnBusStopsReceived(s, data) {
         }
     }
 
-    s.emit('onBusStopsReceived', retVal);
+    s.emit('onBusStopReturned', retVal);
 }
 
 function returnOnGetBusNubers(s, data) {
     var d = [1,2,3,4,5,6];
-    s.emit('onBusNumbersReceived', d);
+    s.emit('onBusRoutesReturned', d);
 }
 
 function setActiveBusses(s, data) {
@@ -65,8 +73,34 @@ function setActiveBusses(s, data) {
     console.log(enabledBusRoutes);
 }
 
+function returnGetLocations(s, data) {
+    var retVal = ['ottawa', 'toronto'];
+    s.emit('onLocationsReturned', retVal);
+}
+
+function returnSetLocation(s, data) {
+
+    locationName = data;
+    s.emit('ack', {valid: 1});
+}
+
+function returnGetSchedules(s, data) {
+    var retVal = ['Weekend', 'Weekday'];
+    s.emit('onScheduleReturned', retVal);
+}
+
+function returnSetSchedules(s, data) {
+    scheduleName = data;
+    s.emit('ack', {valid: 1});
+}
+
+
 io.sockets.on('connection', function(socket) {
-    socket.on('getBusNumbers', function(data) { returnOnGetBusNubers(socket, data); });
-    socket.on('setActiveBusses', function(data) { setActiveBusses(socket, data); });
+    socket.on('getLocations', function(data) { returnGetLocations(socket, data); });
+    socket.on('setLocation', function(data) { returnSetLocation(socket, data); });
+    socket.on('getSchedules', function(data) { returnGetSchedules(socket, data); });
+    socket.on('setSchedule', function(data) { returnSetSchedules(socket, data); });
+    socket.on('getBusRoutes', function(data) { returnOnGetBusNubers(socket, data); });
+    socket.on('setBusRoutes', function(data) { setActiveBusses(socket, data); });
     socket.on('getBusStops', function(data) { returnOnBusStopsReceived(socket, data); });
 });
