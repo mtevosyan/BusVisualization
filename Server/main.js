@@ -28,14 +28,14 @@ function handler (req, res) {
 }
 
 var locationName = 'ottawa';
-var scheduleData = {};
+var scheduleData = null;
 var scheduleName = "";
 var routesData =  {};
-var enabledBusRoutes = [];
-
+var enabledBusRoutes = {};
+var indexData = [];
 
 function readScheduleFile() {
-    var path = __dirname + '\\dataset\\' + locationName + '\\schedules.json';
+    var path = __dirname + '/dataset/' + locationName + '/schedules.json';
     var data = fs.readFileSync(path);
     var retVal = JSON.parse(data);
     return retVal;
@@ -53,21 +53,44 @@ function generateBusData(routeNbr, busNbr, t, nT, X, Y)
     return retVal;
 }
 
-function returnOnBusStopsReceived(s, data) {
-    var retVal = [];
+function readIndex() {
+    var path = __dirname + '/dataset/' + locationName + '/' + scheduleData[scheduleName].index;
+    var data = fs.readFileSync(path);
+    indexData = JSON.parse(data);
+    return indexData;
+}
 
-    for(time = data.start; time < data.end; ++time) {
-        for(index = 0; index < enabledBusRoutes.length; ++index) {
-            var route = enabledBusRoutes[index];
-            retVal.push(generateBusData(route, route, time, time+1, 12, 24));
-        }
+function readStopBlockData(from, to) {
+    var fromByte = indexData[from];
+    var toByte = indexData[to] - 3;
+    var path = __dirname + '/dataset/' + locationName + '/' + scheduleData[scheduleName].data;
+    var fd = fs.openSync(path, 'r');
+    var data = new Buffer(toByte - fromByte);
+    var byteRead = fs.readSync(fd, data, 0, toByte - fromByte, fromByte);
+    fs.closeSync(fd);
+    console.log(data.toString());
+    var retVal = JSON.parse(data);
+    return retVal;
+}
+
+function returnOnBusStopsReceived(s, data) {
+    var retVal = []
+    for(t = data.start; t < data.end + 1; ++t)
+    {
+        var rawData = readStopBlockData(t, t+1);
+        rawData.forEach(function(a) {
+            if(enabledBusRoutes[a.r]) {
+                a.t = t;
+                retVal.push(a);
+            }
+        });
     }
 
     s.emit('onBusStopReturned', retVal);
 }
 
 function readBusRoutes() {
-    var path = __dirname + '\\dataset\\' + locationName + '\\routes.json';
+    var path = __dirname + '/dataset/' + locationName + '/routes.json';
     var data = fs.readFileSync(path);
     var retVal = JSON.parse(data);
     return retVal;
@@ -85,11 +108,11 @@ function returnOnGetBusNubers(s, data) {
 }
 
 function setActiveBusses(s, data) {
-    enabledBusRoutes = [];
+    enabledBusRoutes = {};
     var error = false;
     data.forEach(function(a) {
         if(routesData[a]) {
-            enabledBusRoutes.push(a);
+            enabledBusRoutes[a] = 1;
         } else {
             error = true;
         }
@@ -97,7 +120,7 @@ function setActiveBusses(s, data) {
 
     if (!error) {
         s.emit('ack', {valid: true});
-        console.log(enabledBusRoutes);
+        readIndex();
     } else {
         s.emit('ack', {valid: false});
     }
@@ -113,17 +136,30 @@ function returnSetLocation(s, data) {
     s.emit('ack', {valid: 1});
 }
 
-function returnGetSchedules(s, data) {
+function processSchedulesData() {
     var schedule = readScheduleFile();
+    scheduleData = {};
+    schedule.forEach(function(a) {
+        scheduleData[a.name] = a;
+    });
+
+    return schedule;
+}
+
+function returnGetSchedules(s, data) {
+    var schedule = processSchedulesData();
     var retVal = [];
     schedule.forEach(function(a) {
         retVal.push(a.name);
-        scheduleData[a.name] = a;
     });
     s.emit('onScheduleReturned', retVal);
 }
 
 function returnSetSchedules(s, data) {
+    if (!scheduleData) {
+        processSchedulesData();
+    }
+
     scheduleName = data;
     if(scheduleData[scheduleName]) {
         s.emit('ack', {valid: true});
@@ -133,11 +169,19 @@ function returnSetSchedules(s, data) {
 
 }
 
+function returnGetGPSCenter(s, data) {
+    var retVal = {gps_lat: scheduleData[scheduleName].gps_lat,
+                  gps_long: scheduleData[scheduleName].gps_long};
+
+    s.emit('onGPSCenterReturned', retVal);
+}
+
 io.sockets.on('connection', function(socket) {
     socket.on('getLocations', function(data) { returnGetLocations(socket, data); });
     socket.on('setLocation', function(data) { returnSetLocation(socket, data); });
     socket.on('getSchedules', function(data) { returnGetSchedules(socket, data); });
     socket.on('setSchedule', function(data) { returnSetSchedules(socket, data); });
+    socket.on('getGPSCenter', function(data) { returnGetGPSCenter(socket, data); });
     socket.on('getBusRoutes', function(data) { returnOnGetBusNubers(socket, data); });
     socket.on('setBusRoutes', function(data) { setActiveBusses(socket, data); });
     socket.on('getBusStops', function(data) { returnOnBusStopsReceived(socket, data); });
